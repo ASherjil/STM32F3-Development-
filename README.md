@@ -1,2 +1,2 @@
 # Mechatronics-Labs
-STM32 Code for Labs 1-4
+STM32F303VT6 Code for Labs 1-4
