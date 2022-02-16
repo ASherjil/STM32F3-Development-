@@ -1,17 +1,9 @@
-/* 
-	Pete Hubbard 2019
-	Loughborough University
-	WSC055 Lab 1
-	V.2.0
-	
-	The following 'c' code presents an outline for you to adapt during the laboratory
-*/
-
 #include "stm32f3xx.h"                  // Device header
 
 
 static int flag = 0;
-static int mask = 0x100;
+static int mask = 1;
+
 void counter();
 
 void TIM3_IRQHandler()
@@ -61,17 +53,17 @@ void counter()
 {
 		if (flag == 1)// if LED is on
 		{
-			GPIOE->BSRRH = mask; // turn off
+			GPIOE->BSRRH = mask<<8; // turn off LED
 			
-			if (mask >=0xFF00){mask = 0x100;}//reset mask if max value is reached
+			if (mask > 255){mask = 1;}//reset mask if max value is reached
 			
-			mask+=256;
-			flag =0;
+			mask+=1;
+			flag =0;// change flag 
 			
 		}
 		else if (flag==0)// if LED is off
 		{
-			GPIOE->BSRRL =mask;// turn on LED1 
-			flag =1;
+			GPIOE->BSRRL =mask<<8;// turn on LED
+			flag =1; // change flag
 		}
 }
