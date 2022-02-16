@@ -14,20 +14,20 @@ int main(void)
 	GPIOE->OTYPER &= ~(0xFF00); // Set output type for each pin required in Port E
 	GPIOE->PUPDR &= ~(0x55550000); // Set Pull up/Pull down resistor configuration for Port E
 	
-	int mask= 0x100;
+	int mask= 1;// = 0b00000001
 
 	while (1)
 	{
 		while (mask <= 0xFF00)
 		{
-			GPIOE->BSRRL = mask;// turn on LED
+			GPIOE->BSRRL = mask<<8;// turn on LED
 			delay(555555*2);// wait for 1 second 
-			GPIOE->BSRRH = mask; // turn off LED
-			mask+=256;
+			GPIOE->BSRRH = mask<<8; // turn off LED
+			mask+=1;
 		}
 		
 		GPIOE->BSRRH = 0xFF00; // turn off all LEDs
-		mask = 0x100;// reset mask 
+		mask = 1;// reset mask 
 	}
 }
 
