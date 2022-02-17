@@ -54,9 +54,25 @@ int main(void)
 	
 	
 	int flag2=0;
+	
+	
+	ADC_init();// initialise the ADC 
+	
+	ADC1->CR |= 0x4; // enable ADC
+	while (!(ADC1->ISR & 0x4)) {}// wait for ARDY flag to go high 
+	
 	while (1)
 	{
-		
+			if (!flag2)// if LEDs are off
+			{
+				GPIOE->BSRRL =	(ADC1->DR)<<8;// voltage read from the ADC goes to the LED
+				flag2=1;//toggle flag2
+			}
+			else if (flag2==1)
+			{
+				GPIOE->BSRRH=0xFF00; // turn off LEDs
+				flag2 =0;//change flag to go back to the first if statement 
+			}
 	}
 	
 
@@ -123,9 +139,6 @@ void ADC_init()
 		
 	ADC1->CR |= 0x1; // ADEN set to high to enable ADC
 	
-	while(ADC1->ISR )
-	{
-		
-	}
+	while (!(ADC1->ISR & 0x01)) {}// wait for ARDY flag to go high 
 	
 }
