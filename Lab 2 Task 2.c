@@ -50,13 +50,8 @@ int main(void)
   DAC1->CR |= DAC_CR_EN1;
 //-------------------------------------
 
-	ADC_init();// initialise the ADC
-	
-	
-	int flag2=0;
-	
-	
-	ADC_init();// initialise the ADC 
+	ADC_init();// initialise the ADC	
+	int flag2=0;	
 	
 	ADC1->CR |= 0x4; // enable ADC
 	while (!(ADC1->ISR & 0x4)) {}// wait for ARDY flag to go high 
