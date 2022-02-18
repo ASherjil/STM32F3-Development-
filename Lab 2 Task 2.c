@@ -120,7 +120,7 @@ void ADC_init()
 	ADC1_2_COMMON->CCR |= 0x00010000;
 	//---------------------------------------------
 		
-	RCC->AHBENR = RCC_AHBENR_GPIOAEN;// enable clock on GPIOA
+	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;// enable clock on GPIOA
 	GPIOA->MODER |= 0x200; // analogue mode on PA.2 
 		
 	ADC1->CFGR |= (0x100);// 8 bit resolution 
