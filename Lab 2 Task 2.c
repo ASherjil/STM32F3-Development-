@@ -54,7 +54,7 @@ int main(void)
 	int flag2=0;	
 	
 	ADC1->CR |= 0x4; // enable ADC
-	while (!(ADC1->ISR & 0x4)) {}// wait for ARDY flag to go high 
+	while (!(ADC1->ISR & 0x4)) {}// wait for EOC flag to go high 
 	
 	while (1)
 	{
