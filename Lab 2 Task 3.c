@@ -1,6 +1,7 @@
 #include "stm32f3xx.h"                  // Device header
+#include <stdbool.h>
 
-static int flag = 0;
+static volatile bool flag = false;
 static int mask = 1;//0b01
 
 void counter();
@@ -53,7 +54,8 @@ int main(void)
 
 	ADC_init();// initialise the ADC
 	OpAmp_init(); // initialise the OP-AMP
-	int flag2=0;	
+		
+	static volatile bool flag2 = false;
 	
 	while (1)
 	{
@@ -61,15 +63,15 @@ int main(void)
 			ADC1->CR |= 0x4; // enable ADC
 			while (!(ADC1->ISR & 0x4)) {}// wait for EOC flag to go high 
 		
-			if (!flag2)// if LEDs are off
+			if (!flag2)// if LEDs are ON
 			{
 				GPIOE->BSRRL =	(ADC1->DR)<<8;// voltage read from the ADC goes to the LED
-				flag2=1;//toggle flag2
+				flag2=true;//toggle flag2
 			}
-			else if (flag2==1)
+			else if (flag2) // if LEDs are ON
 			{
 				GPIOE->BSRRH=0xFF00; // turn off LEDs
-				flag2 =0;//change flag to go back to the first if statement 
+				flag2 =false;//change flag to go back to the first if statement 
 			}
 	}
 	
@@ -89,18 +91,18 @@ void wait(int count)
 
 void counter()
 {
-		if (flag == 1)// if LED is on
+		if (flag)// if LED is on
 		{			
 			if (mask >255){mask = 1;}//reset mask if max value is reached
 			
 			mask+=1;
-			flag =0;// change flag
+			flag =false;// change flag
 			
 		}
-		else if (flag==0)// if LED is off
+		else if (!flag)// if LED is off
 		{
 			DAC1->DHR12R1 = mask;
-			flag =1;// change flag
+			flag =true;// change flag
 		}
 }
 
