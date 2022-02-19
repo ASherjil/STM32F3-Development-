@@ -154,6 +154,6 @@ void OpAmp_init()
 	OPAMP1->CSR |= 0x00000040;// Set VM_SEL to 0b10 to enable PGA mode
 	
 	
-	OPAMP1->CSR |= 0xC000;// gain set to 16 
+	OPAMP1->CSR |= 0x3C000;// gain set to 16 
 	
 }
