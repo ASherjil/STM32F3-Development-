@@ -1,7 +1,6 @@
 #include "stm32f3xx.h"                  // Device header
 #include <stdbool.h>
 
-static volatile bool flag = false;
 static int mask = 1;//0b01
 
 void counter();
@@ -14,7 +13,8 @@ void TIM3_IRQHandler()
 	 
  if ((TIM3->SR & TIM_SR_UIF) !=0) // Check interrupt source is from the 'Update' interrupt flag
  {
-		counter();
+		if (mask > 255){mask = 1;}// reset mask to 1 if max value reached
+		++mask;
  }
 		TIM3->SR &= ~TIM_SR_UIF; // Reset 'update' interrupt flag in the SR register
 }
@@ -39,7 +39,7 @@ int main(void)
 	GPIOE->PUPDR &= ~(0x55550000); // Set Pull up/Pull down resistor configuration for Port E
 	
   RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; //Define the clock pulse toTIM3
-  TIM3->PSC = 89;
+	TIM3->PSC = 89;
   TIM3->ARR = 8899;
   TIM3->CR1 |= TIM_CR1_CEN;//Set Timer Control Register to start timer
   TIM3->DIER |= TIM_DIER_UIE; // Set DIER register to watch out for an 'Update' Interrupt Enable (UIE) – or 0x00000001
@@ -59,7 +59,7 @@ int main(void)
 	
 	while (1)
 	{
-		
+			DAC1->DHR12R1 = mask; // write the value into the DAC
 			ADC1->CR |= 0x4; // enable ADC
 			while (!(ADC1->ISR & 0x4)) {}// wait for EOC flag to go high 
 		
@@ -87,25 +87,6 @@ void wait(int count)
 		++ticks;
 	}
 }
-
-
-void counter()
-{
-		if (flag)// if LED is on
-		{			
-			if (mask >255){mask = 1;}//reset mask if max value is reached
-			
-			mask+=1;
-			flag =false;// change flag
-			
-		}
-		else if (!flag)// if LED is off
-		{
-			DAC1->DHR12R1 = mask;
-			flag =true;// change flag
-		}
-}
-
 
 void ADC_init()
 {
