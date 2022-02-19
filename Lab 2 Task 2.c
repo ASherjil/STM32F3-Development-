@@ -1,6 +1,6 @@
 #include "stm32f3xx.h"                  // Device header
+#include <stdbool.h>
 
-static int flag = 0;
 static int mask = 1;//0b01
 
 void counter();
@@ -12,7 +12,8 @@ void TIM3_IRQHandler()
 	 
  if ((TIM3->SR & TIM_SR_UIF) !=0) // Check interrupt source is from the 'Update' interrupt flag
  {
-		counter();
+		if (mask > 255){mask = 1;}// reset mask to 1 if max value reached
+		++mask;
  }
 		TIM3->SR &= ~TIM_SR_UIF; // Reset 'update' interrupt flag in the SR register
 }
@@ -27,7 +28,7 @@ int main(void)
 	
 //-------------------------------
 // Configure ports for DAC
-		GPIOA->MODER |= 0x300;
+		GPIOA->MODER |= 0x300; 
 //	GPIOA->OTYPER &= ~(0x10); // open drain
 //	GPIOE->PUPDR &= ~(0x100); // pull up resistor 
 //--------------------------------
@@ -37,7 +38,7 @@ int main(void)
 	GPIOE->PUPDR &= ~(0x55550000); // Set Pull up/Pull down resistor configuration for Port E
 	
   RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; //Define the clock pulse toTIM3
-  TIM3->PSC = 89;
+	TIM3->PSC = 89;
   TIM3->ARR = 8899;
   TIM3->CR1 |= TIM_CR1_CEN;//Set Timer Control Register to start timer
   TIM3->DIER |= TIM_DIER_UIE; // Set DIER register to watch out for an 'Update' Interrupt Enable (UIE) – or 0x00000001
@@ -50,23 +51,25 @@ int main(void)
   DAC1->CR |= DAC_CR_EN1;
 //-------------------------------------
 
-	ADC_init();// initialise the ADC	
-	int flag2=0;	
-	
-	ADC1->CR |= 0x4; // enable ADC
-	while (!(ADC1->ISR & 0x4)) {}// wait for EOC flag to go high 
+	ADC_init();// initialise the ADC
+		
+	static volatile bool flag2 = false;
 	
 	while (1)
 	{
-			if (!flag2)// if LEDs are off
+			DAC1->DHR12R1 = mask; // write the value into the DAC
+			ADC1->CR |= 0x4; // enable ADC
+			while (!(ADC1->ISR & 0x4)) {}// wait for EOC flag to go high 
+		
+			if (!flag2)// if LEDs are ON
 			{
 				GPIOE->BSRRL =	(ADC1->DR)<<8;// voltage read from the ADC goes to the LED
-				flag2=1;//toggle flag2
+				flag2=true;//toggle flag2
 			}
-			else if (flag2==1)
+			else if (flag2) // if LEDs are ON
 			{
 				GPIOE->BSRRH=0xFF00; // turn off LEDs
-				flag2 =0;//change flag to go back to the first if statement 
+				flag2 =false;//change flag to go back to the first if statement 
 			}
 	}
 	
@@ -82,25 +85,6 @@ void wait(int count)
 		++ticks;
 	}
 }
-
-
-void counter()
-{
-		if (flag == 1)// if LED is on
-		{			
-			if (mask >255){mask = 1;}//reset mask if max value is reached
-			
-			mask+=1;
-			flag =0;// change flag
-			
-		}
-		else if (flag==0)// if LED is off
-		{
-			DAC1->DHR12R1 = mask;
-			flag =1;// change flag
-		}
-}
-
 
 void ADC_init()
 {
@@ -135,5 +119,4 @@ void ADC_init()
 	ADC1->CR |= 0x1; // ADEN set to high to enable ADC
 	
 	while (!(ADC1->ISR & 0x01)) {}// wait for ARDY flag to go high 
-	
 }
