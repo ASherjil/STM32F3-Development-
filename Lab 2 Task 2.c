@@ -121,7 +121,7 @@ void ADC_init()
 	//---------------------------------------------
 		
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;// enable clock on GPIOA
-	GPIOA->MODER |= 0x200; // analogue mode on PA.2 
+	GPIOA->MODER |= 0x3; // analogue mode on PA.0, "11" 
 		
 	ADC1->CFGR |= (0x10);// 8 bit resolution 
 	ADC1->CFGR &= ~(0x20);// align right 
