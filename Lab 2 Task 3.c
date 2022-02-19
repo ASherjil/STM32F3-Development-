@@ -52,14 +52,15 @@ int main(void)
 //-------------------------------------
 
 	ADC_init();// initialise the ADC
-	ADC1->CR |= 0x4; // enable ADC
-	while (!(ADC1->ISR & 0x4)) {}// wait for EOC flag to go high 
-	
-	OpAmp_init();
-
+	OpAmp_init(); // initialise the OP-AMP
 	int flag2=0;	
+	
 	while (1)
 	{
+		
+			ADC1->CR |= 0x4; // enable ADC
+			while (!(ADC1->ISR & 0x4)) {}// wait for EOC flag to go high 
+		
 			if (!flag2)// if LEDs are off
 			{
 				GPIOE->BSRRL =	(ADC1->DR)<<8;// voltage read from the ADC goes to the LED
