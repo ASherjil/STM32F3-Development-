@@ -58,10 +58,10 @@ int main(void)
 	while (1)
 	{
 			DAC1->DHR12R1 = mask; // write the value into the DAC
-			ADC1->CR |= 0x4; // enable ADC
+			ADC1->CR |= 0x4; // enable ADC by setting ADSTART bit to High
 			while (!(ADC1->ISR & 0x4)) {}// wait for EOC flag to go high 
 		
-			if (!flag2)// if LEDs are ON
+			if (!flag2)// if LEDs are OFF
 			{
 				GPIOE->BSRRL =	(ADC1->DR)<<8;// voltage read from the ADC goes to the LED
 				flag2=true;//toggle flag2
