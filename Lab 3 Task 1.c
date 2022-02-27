@@ -5,12 +5,12 @@
 int main()
 {
 	RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;// enable clock connection for TIMER1
+	RCC->AHBENR |= RCC_AHBENR_GPIOEEN ;// enable clock on GPIOE
+	
 	GPIOE->MODER = (GPIOE->MODER & (~0x3C0C0000))|0x28080000; // PE.9,PE13,PE14 configured to alternate mode
 	
 	GPIOE->OTYPER = (GPIOE->OTYPER& (~0x6200)) | 0x6200; // open drain for PE9,PE13,PE14
 	GPIOE->PUPDR = (GPIOE->PUPDR & (~0x3C0C0000))|0x14040000; // pull up registor for PE9,PE13,PE14 
-	
-	RCC->AHBENR |= RCC_AHBENR_GPIOEEN ;// enable clock on GPIOE
 	
 	GPIOE-> AFR[1] = (GPIOE-> AFR[1]& ~0xFF000F0)|0xED00090; // PE.9,PE.13 and PE.14 
 
@@ -32,5 +32,5 @@ int main()
 
 	TIM1->CR1 |= TIM_CR1_CEN;
 	
-	GPIOE->BSRRL = 0x6200;// turn on LEDs	
+	GPIOE->BSRRL = (GPIOE->BSRRL & ~0x6200)|0x6200;// turn on LEDs	
 }
