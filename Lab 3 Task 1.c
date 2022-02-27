@@ -15,7 +15,7 @@ int main()
 void PWM_init()
 {
 	RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;// enable clock connection for TIMER1
-	GPIOE->MODER|= 0x28080000; // PE.9,PE13,PE14 configured to alternate mode
+	GPIOE->MODER = (GPIOE->MODER & ~0x3C0C0000)|28080000; // PE.9,PE13,PE14 configured to alternate mode
 	GPIOE->OTYPER &= ~(0x6200); // push/pull for PE9,PE13,PE14
 	GPIOE->PUPDR &= ~(0x3C0C0000); // no pullup, pull down  
 	
