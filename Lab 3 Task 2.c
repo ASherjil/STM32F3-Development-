@@ -67,8 +67,7 @@ void PWM_init(int dutyCycle)
 	
 //Enable the Channel chosen to be output to the GPIO pin
 	TIM1->BDTR |= TIM_BDTR_MOE;// 0x00008000
-//	TIM1->CCER |= TIM_CCER_CC1E;//0x00000001, channel 1
-	TIM1->CCER = (TIM1->CCER & ~0x1101) | 0x1101; // channel 3 and channel 4
+	TIM1->CCER = (TIM1->CCER & ~0x1101) | 0x1101; // channel 1,3 and channel 4
 //------------------------------------------------------
 
 	TIM1->CR1 |= TIM_CR1_CEN;
