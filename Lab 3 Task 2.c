@@ -14,14 +14,14 @@ void EXTI0_IRQHandler()
 	{
 		EXTI->PR |= EXTI_PR_PR0; // clear flag*
 		if (index > 4){index = 0;}// reset index if max value reached
-		PWM_init(arr[index++]);
+		PWM_init(arr[++index]);
 	}
 };
 
 int main()
 {
 	interrupt_init();
-	PWM_init(20);
+	PWM_init(0);
 }
 
 void interrupt_init()
@@ -71,5 +71,4 @@ void PWM_init(int dutyCycle)
 //------------------------------------------------------
 
 	TIM1->CR1 |= TIM_CR1_CEN;
-	
 }
