@@ -14,15 +14,15 @@ int main()
 	
 	GPIOE-> AFR[1] = (GPIOE->AFR[1] & ~(0xFF000F0))|0x2200020; // PE.9,PE.13 and PE.14 
 
-	TIM1->PSC = 79999999;
-	TIM1->ARR= 9; // around 100Hz or 0.01s
+	TIM1->PSC = 3999;
+	TIM1->ARR= 19; // around 100Hz or 0.01s
 	
 	TIM1->CCMR1 |= 0x00000060; // channel 1 for PE.9
 	TIM1->CCMR2 = (TIM1->CCMR2 & ~0xF0F0)|0x6060;// channel 3 and 4(PE.13 and PE.14 )
 	
-	TIM1->CCR1 = 1; //determine the duty cycle, 10%
-	TIM1->CCR3 = 5; //determine the duty cycle, 50%
-	TIM1->CCR4 = 9; //determine the duty cycle, 90&
+	TIM1->CCR1 = 2; //determine the duty cycle, 10%
+	TIM1->CCR3 = 10; //determine the duty cycle, 50%
+	TIM1->CCR4 = 18; //determine the duty cycle, 90&
 	
 //Enable the Channel chosen to be output to the GPIO pin
 	TIM1->BDTR |= TIM_BDTR_MOE;// 0x00008000
