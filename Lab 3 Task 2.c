@@ -61,9 +61,9 @@ void PWM_init(int dutyCycle)
 	TIM1->CCMR1 |= 0x00000060; // channel 1 for PE.9
 	TIM1->CCMR2 = (TIM1->CCMR2 & ~0xF0F0)|0x6060;// channel 3 and 4(PE.13 and PE.14 )
 	
-	TIM1->CCR1 = dutyCycle; //determine the duty cycle, 10%
-	TIM1->CCR3 = dutyCycle; //determine the duty cycle, 50%
-	TIM1->CCR4 = dutyCycle; //determine the duty cycle, 90&
+	TIM1->CCR1 = dutyCycle; //determine the duty cycle, (CCR1/(ARR+1))*100 == Duty_cycle%
+	TIM1->CCR3 = dutyCycle; //determine the duty cycle
+	TIM1->CCR4 = dutyCycle; //determine the duty cycle
 	
 //Enable the Channel chosen to be output to the GPIO pin
 	TIM1->BDTR |= TIM_BDTR_MOE;// 0x00008000
