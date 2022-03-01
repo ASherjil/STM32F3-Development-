@@ -10,9 +10,9 @@ int main(void)
 // GPIOE is a structure defined in stm32f303xc.h file
 	
 //-----------------ALL LED PINS SET TO PUSH/PULL WITH NO No pull-up, pull-down
-	GPIOE->MODER = (GPIOE->MODER & ~(0xFFFF0000))| 0x55550000;// output mode "01" for all pins
-	GPIOE->OTYPER &= ~(0xFF00); // push/pull "00" for all pins
-	GPIOE->PUPDR &= ~(0xFFFF0000); // no pullup, pull-down for all pins
+	GPIOE->MODER = (GPIOE->MODER & ~(0xFFFF0000))| 0x55550000;// output mode "01" for pins(8-15)
+	GPIOE->OTYPER &= ~(0xFF00); // push/pull "00" for pins(8-15)
+	GPIOE->PUPDR &= ~(0xFFFF0000); // no pullup, pull-down for pins(8-15)
 //--------------------------------------------------------------------------------	
 	
 	int count= 1;// = 0b00000001
