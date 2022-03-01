@@ -15,7 +15,7 @@ int main(void)
 	GPIOE->PUPDR &= ~(0xFFFF0000); // no pullup, pull-down for pins(8-15)
 //--------------------------------------------------------------------------------	
 	
-	int count= 1;// = 0b00000001
+	int count= 0;// = 0b00000000
 
 	while (1)
 	{
@@ -27,7 +27,7 @@ int main(void)
 			++count; // increment 
 		}
 			GPIOE->BSRRH = 0xFF00; // turn off all LEDs
-			count = 1;// reset mask 
+			count = 0;// reset count 
 			delay(555555*2);// wait for 1 second to 'see' all LED OFF
 	}
 }
