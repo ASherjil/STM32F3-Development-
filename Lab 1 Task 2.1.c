@@ -13,9 +13,7 @@ int main()
 	GPIOE->OTYPER &= ~0x1000; // PE.12 set to push/pull
 	
 //-------------Set PE.8 to Pull-Up and set PE.12 to No pull-up,pull-down
-	GPIOE->PUPDR &= ~(0x3000000); // PE.12 set to No pull-up,pull-down
-	GPIOE->PUPDR &= ~(0x20000); // PE.8 bit set to 0
-	GPIOE->PUPDR |= 0x10000; // PE.8 bit set to "01", Pull-up
+	GPIOE->PUPDR = (GPIOE->PUPDR& ~0x3030000)|0x10000;
 //----------------------------------------------------------------------
 
 	while (1)
