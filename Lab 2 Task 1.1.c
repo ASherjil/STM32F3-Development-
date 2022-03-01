@@ -1,6 +1,6 @@
 #include "stm32f3xx.h"                  // Device header
 
-static int count = 1;//0b01
+static int count = 0;//0b01
 void counter();
 
 void TIM3_IRQHandler()
@@ -45,7 +45,7 @@ int main(void)
 
 void counter()
 {
-		if (count > 255){count=1;}
+		if (count > 255){count=0;}
 		DAC1->DHR12R1 = count ;// write counter into DAC
 		GPIOE->BSRRH = 0xFF00; // turn OFF Leds 
 		GPIOE->BSRRL = (DAC1->DHR12R1) <<8; // turn ON Leds by shifting bits
