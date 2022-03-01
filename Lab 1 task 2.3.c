@@ -1,33 +1,33 @@
 #include "stm32f3xx.h"                  // Device header
 
-
 void delay(int a); // prototype for delay function
 
 int main(void)
 {
-	// Enable clock on GPIO port E
+// Enable clock on GPIO port E
 	RCC->AHBENR |= RCC_AHBENR_GPIOEEN;
 	
-	// GPIOE is a structure defined in stm32f303xc.h file
-	// Define settings for each output pin using GPIOE structure
-	GPIOE->MODER |= 0x55550000; // Set mode of each pin in port E
-	GPIOE->OTYPER &= ~(0xFF00); // Set output type for each pin required in Port E
-	GPIOE->PUPDR &= ~(0x55550000); // Set Pull up/Pull down resistor configuration for Port E
+// GPIOE is a structure defined in stm32f303xc.h file
 	
-	int mask= 1;// = 0b00000001
+//-----------------ALL LED PINS SET TO PUSH/PULL WITH NO No pull-up, pull-down
+	GPIOE->MODER = (GPIOE->MODER & ~(0xFFFF0000))| 0x55550000;// output mode "01" for all pins
+	GPIOE->OTYPER &= ~(0xFF00); // push/pull "00" for all pins
+	GPIOE->PUPDR &= ~(0xFFFF0000); // no pullup, pull-down for all pins
+//--------------------------------------------------------------------------------	
+	
+	int count= 1;// = 0b00000001
 
 	while (1)
 	{
-		while (mask <= 0xFF00)
+		while (count < (255+1)) // run max value + 1 times, (2^8)-1 +1= 255+1  
 		{
-			GPIOE->BSRRL = mask<<8;// turn on LED
+			GPIOE->BSRRL = (count<<8);// turn on LED by shifting bits to the left
 			delay(555555*2);// wait for 1 second 
-			GPIOE->BSRRH = mask<<8; // turn off LED
-			mask+=1;
+			GPIOE->BSRRH = (count<<8); // turn off LED
+			++count; // increment 
 		}
-		
 		GPIOE->BSRRH = 0xFF00; // turn off all LEDs
-		mask = 1;// reset mask 
+		count = 1;// reset mask 
 	}
 }
 
