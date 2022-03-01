@@ -43,12 +43,12 @@ void counter()
 {
 		if (flag == 1)// if LED is ON
 		{
-			GPIOE->BSRRH = (count<<8); // turn off LEDs
+			++count;// increment counter 
 			if (count > 255){count = 1;}//reset mask if max value is reached
-			++count;
+			GPIOE->BSRRH = 0xFF00; // turn off all LEDs
 			flag =false;// change flag 
 		}
-		else if (!flag)// if LED is OFF
+		else if (!flag)// if LED is OFF, and first run 
 		{
 			GPIOE->BSRRL =(count<<8);// turn on LEDs
 			flag =true; // change flag
