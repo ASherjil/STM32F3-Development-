@@ -1,7 +1,6 @@
 #include "stm32f3xx.h"                  // Device header
 
-static int flag = 0;
-static int mask = 1;//0b01
+static int count = 1;//0b01
 void counter();
 
 void TIM3_IRQHandler()
@@ -21,27 +20,23 @@ int main(void)
 	
 // Enable clock on GPIO port E
 	RCC->AHBENR |= RCC_AHBENR_GPIOEEN;
-	
-//-------------------------------
+
 // Configure ports for DAC
-	GPIOA->MODER |= 0x300;
-//	GPIOA->OTYPER &= ~(0x10); // open drain
-//	GPIOE->PUPDR &= ~(0x100); // pull up resistor 
-//--------------------------------
-	
-	GPIOE->MODER |= 0x55550000; // Set mode of each pin in port E
-	GPIOE->OTYPER &= ~(0xFF000000); // Set output type for each pin required in Port E
-	GPIOE->PUPDR &= ~(0x55550000); // Set Pull up/Pull down resistor configuration for Port E
+	GPIOA->MODER |= 0x300; // PA.4 set to analogue mode 
+//-----------------ALL LED PINS SET TO PUSH/PULL WITH NO No pull-up, pull-down
+	GPIOE->MODER = (GPIOE->MODER & ~(0xFFFF0000))| 0x55550000;// output mode "01" for pins(8-15)
+	GPIOE->OTYPER &= ~(0xFF00); // push/pull "00" for pins(8-15)
+	GPIOE->PUPDR &= ~(0xFFFF0000); // no pullup, pull-down for pins(8-15)
+//--------------------------------------------------------------------------------
 	
   RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; //Define the clock pulse toTIM3
-  TIM3->PSC = 89;
-  TIM3->ARR = 8899;
+  TIM3->PSC = 65535;
+  TIM3->ARR = (int)11.2070;
   TIM3->CR1 |= TIM_CR1_CEN;//Set Timer Control Register to start timer
   TIM3->DIER |= TIM_DIER_UIE; // Set DIER register to watch out for an 'Update' Interrupt Enable (UIE) – or 0x00000001
   NVIC_EnableIRQ(TIM3_IRQn); // Enable Timer 3 interrupt request in NVIC
 
-//-------------------------------------
-//DAC configuration 
+//--------------------DAC configuration 
   RCC->APB1ENR |= RCC_APB1ENR_DAC1EN;
   DAC1->CR |= DAC_CR_BOFF1;
   DAC1->CR |= DAC_CR_EN1;
@@ -50,20 +45,9 @@ int main(void)
 
 void counter()
 {
-		if (flag == 1)// if LED is on
-		{
-			GPIOE->BSRRH = 0xFF00; // turn off
-			
-			if (mask >255){mask = 1;}//reset mask if max value is reached
-			
-			mask+=1;
-			flag =0;// change flag
-			
-		}
-		else if (flag==0)// if LED is off
-		{
-			DAC1->DHR12R1 = mask;
-			GPIOE->BSRRL =	(DAC1->DHR12R1)<<8;// shift the DAC info to turn on LEDs 
-			flag =1;// change flag
-		}
+		if (count > 255){count=1;}
+		DAC1->DHR12R1 = count ;// write counter into DAC
+		GPIOE->BSRRH = 0xFF00; // turn OFF Leds 
+		GPIOE->BSRRL = (DAC1->DHR12R1) <<8; // turn ON Leds by shifting bits
+		++count;
 }
