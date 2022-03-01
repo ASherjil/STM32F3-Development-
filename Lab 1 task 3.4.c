@@ -16,8 +16,6 @@ void TIM3_IRQHandler()
 		TIM3->SR &= ~TIM_SR_UIF; // Reset 'update' interrupt flag in the SR register
 }
  
-
-
 int main(void)
 {
 	
@@ -41,16 +39,8 @@ int main(void)
 
 void counter()
 {
-		if (flag)// if LED is ON
-		{
-			++count;// increment counter 
-			if (count > 255){count = 1;}//reset count if max value is reached
-			GPIOE->BSRRH = 0xFF00; // turn off all LEDs
-			flag =false;// change flag 
-		}
-		else if (!flag)// if LED is OFF, and first run 
-		{
-			GPIOE->BSRRL =(count<<8);// turn on LEDs
-			flag =true; // change flag
-		}
+		if (count > 255){count = 1;} // reset counter if max value is reached 
+		GPIOE->BSRRH = 0xFF00; // turn off LEDs
+		GPIOE->BSRRL = count <<8; // shift bits to turn on LEDs
+		++count;// increment counter 
 }
