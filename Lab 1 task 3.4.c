@@ -1,7 +1,7 @@
 #include "stm32f3xx.h"                  // Device header
 #include <stdbool.h>
 
-static volatile bool flag = 0;
+static volatile bool flag = false;
 static int count = 1;
 
 void counter();
