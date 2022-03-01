@@ -1,8 +1,6 @@
 #include "stm32f3xx.h"                  // Device header
-#include <stdbool.h>
 
-static volatile bool flag = false;
-static int count = 1;
+static int count = 0;
 
 void counter();
 
@@ -39,7 +37,7 @@ int main(void)
 
 void counter()
 {
-		if (count > 255){count = 1;} // reset counter if max value is reached 
+		if (count > 255){count = 0;} // reset counter if max value is reached 
 		GPIOE->BSRRH = 0xFF00; // turn off LEDs
 		GPIOE->BSRRL = count <<8; // shift bits to turn on LEDs
 		++count;// increment counter 
