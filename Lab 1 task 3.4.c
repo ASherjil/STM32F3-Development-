@@ -41,7 +41,7 @@ int main(void)
 
 void counter()
 {
-		if (flag == 1)// if LED is ON
+		if (flag)// if LED is ON
 		{
 			++count;// increment counter 
 			if (count > 255){count = 1;}//reset count if max value is reached
