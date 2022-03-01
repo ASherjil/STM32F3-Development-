@@ -26,8 +26,9 @@ int main(void)
 			GPIOE->BSRRH = (count<<8); // turn off LED
 			++count; // increment 
 		}
-		GPIOE->BSRRH = 0xFF00; // turn off all LEDs
-		count = 1;// reset mask 
+			GPIOE->BSRRH = 0xFF00; // turn off all LEDs
+			count = 1;// reset mask 
+			delay(555555*2);// wait for 1 second to 'see' all LED OFF
 	}
 }
 
