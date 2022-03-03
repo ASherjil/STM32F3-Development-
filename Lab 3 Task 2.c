@@ -1,12 +1,11 @@
 #include "stm32f3xx.h"                  // Device header
-#include <stdbool.h>
 
-static int index=0;
+static int index=1;// starting index, could be anything 0-4
 int arr[5]={0,5,10,15,20}; // calculated values for CCR1
 
 void PWM_init(int);
 void interrupt_init();
-
+void setDutyCycle();
 
 void EXTI0_IRQHandler()
 {
@@ -14,7 +13,8 @@ void EXTI0_IRQHandler()
 	{
 		EXTI->PR |= EXTI_PR_PR0; // clear flag*
 		if (index > 4){index = 0;}// reset index if max value reached
-		PWM_init(arr[++index]);
+		setDutyCycle(arr[index]);
+		++index; // increment dutyCycle by 25%
 	}
 };
 
@@ -50,8 +50,8 @@ void PWM_init(int dutyCycle)
 	
 	GPIOE->MODER = (GPIOE->MODER & (~0x3C0C0000))|0x28080000; // PE.9,PE13,PE14 configured to alternate mode
 	
-	GPIOE->OTYPER = (GPIOE->OTYPER& (~0x6200)) | 0x6200; // open drain for PE9,PE13,PE14
-	GPIOE->PUPDR = (GPIOE->PUPDR & (~0x3C0C0000))|0x14040000; // pull up registor for PE9,PE13,PE14 
+	GPIOE->OTYPER &= ~(0x6200); // Push/pull for PE9,PE13,PE14
+	GPIOE->PUPDR &= 0x3C0C0000; // No pull-up,pull down for PE9,PE13,PE14 
 	
 	GPIOE-> AFR[1] = (GPIOE->AFR[1] & ~(0xFF000F0))|0x2200020; // PE.9,PE.13 and PE.14 
 
@@ -67,8 +67,15 @@ void PWM_init(int dutyCycle)
 	
 //Enable the Channel chosen to be output to the GPIO pin
 	TIM1->BDTR |= TIM_BDTR_MOE;// 0x00008000
-	TIM1->CCER = (TIM1->CCER & ~0x1101) | 0x1101; // channel 1,3 and channel 4
+	TIM1->CCER |= 0x1101; // channel 1,3 and channel 4
 //------------------------------------------------------
 
 	TIM1->CR1 |= TIM_CR1_CEN;
+}
+
+void setDutyCycle(int dutyCycle)
+{
+	TIM1->CCR1 = dutyCycle; //determine the duty cycle, (CCR1/(ARR+1))*100 == Duty_cycle%
+	TIM1->CCR3 = dutyCycle; //determine the duty cycle
+	TIM1->CCR4 = dutyCycle; //determine the duty cycle
 }
