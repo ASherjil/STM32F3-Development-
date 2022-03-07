@@ -10,7 +10,7 @@ int abs(int a)
 
 
 //-------------------------------------------------ENCODER STATE VARIABLES & FUNCTIONS
-static volatile bool direction = false; // true = clockwise, false = anti-clockwise 
+static volatile bool direction = true; // true = clockwise, false = anti-clockwise 
 static int counter = 0;
 const int states[4] = {0b10,0b00,0b01,0b11}; // states of the encoder stored in an integer array 
 static int state = 0; // state of the encoder
@@ -32,7 +32,8 @@ void EXTI0_IRQHandler() // external interrupt channel 0
 	if (EXTI->PR & EXTI_PR_PR0) // check source
 	{
 		EXTI->PR |= EXTI_PR_PR0; // clear flag*
-		if (abs(encoderCount) > 15 ){encoderCount=0;}// reset when max 4-bit value is reached
+		
+		if ((encoderCount > 15)||(encoderCount < -15)){encoderCount=0;}// reset when max 4-bit value is reached
 		displayLED(encoderCount);// display the count on the LED PE.11-14
 	}
 };
@@ -42,15 +43,11 @@ void EXTI1_IRQHandler() // external interrupt channel 1
 	if (EXTI->PR & EXTI_PR_PR1) // check source
 	{
 			EXTI->PR |= EXTI_PR_PR1; // clear flag*
-			
-			if (encoderCount > 15 ){encoderCount=0;}// reset when max 4-bit value is reached
-			displayLED(encoderCount);// display the count on the LED PE.11-14
-			++encoderCount;// increment count everytime a rising/falling edge occurs
 		
+			if ((encoderCount > 15)||(encoderCount < -15)){encoderCount=0;}// reset when max 4-bit value is reached
+			displayLED(encoderCount);// display the count on the LED PE.11-14		
 	}
 }
-
-
 
 
 void TIM3_IRQHandler()// Timer based interrupt 
@@ -100,17 +97,7 @@ int main(void)
 
 void encoder_signal()
 {
-	/*
-	if (counter > 3)// if a direction is done 
-	{
-		counter=0; // reset counter 
-		if (direction){direction= false;} // toggle direction flag 
-		else
-		{
-			direction = true;
-		}
-	}*/
-		
+			
 	GPIOE -> BSRRH = 0x300; // 0b11<<8, this turns OFF leds on PE8,9 to visualize the encoder signal 	
 	if (!direction)// anti-clockwise direction
 	{
@@ -166,7 +153,6 @@ void encoder_signal()
 			++encoderCount;// increment count everytime a rising/falling edge occurs
 	}
 	
-//	++counter;
 }
 
 void ext_interrupt1()
