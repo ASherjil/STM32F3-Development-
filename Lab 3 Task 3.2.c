@@ -1,6 +1,14 @@
 #include <stdbool.h>
 #include "stm32f3xx.h"                  
 
+int abs(int a)
+{
+	if (a>0){return a;}
+	else
+		return (-1*a);		
+}
+
+
 //-------------------------------------------------ENCODER STATE VARIABLES & FUNCTIONS
 static volatile bool direction = false; // true = clockwise, false = anti-clockwise 
 static int counter = 0;
@@ -24,11 +32,8 @@ void EXTI0_IRQHandler() // external interrupt channel 0
 	if (EXTI->PR & EXTI_PR_PR0) // check source
 	{
 		EXTI->PR |= EXTI_PR_PR0; // clear flag*
-		
-		if (encoderCount > 15 ){encoderCount=0;}// reset when max 4-bit value is reached
+		if (abs(encoderCount) > 15 ){encoderCount=0;}// reset when max 4-bit value is reached
 		displayLED(encoderCount);// display the count on the LED PE.11-14
-		++encoderCount;// increment count everytime a rising/falling edge occurs
-		
 	}
 };
 
@@ -105,8 +110,7 @@ void encoder_signal()
 			direction = true;
 		}
 	}*/
-	
-	
+		
 	GPIOE -> BSRRH = 0x300; // 0b11<<8, this turns OFF leds on PE8,9 to visualize the encoder signal 	
 	if (!direction)// anti-clockwise direction
 	{
@@ -132,6 +136,7 @@ void encoder_signal()
 					state = 0; // move on to the next state
 				break;	
 			}
+			--encoderCount;
 	}
 	
 	else if(direction) // clockwise direction
@@ -158,6 +163,7 @@ void encoder_signal()
 					state = 0; // move on to the next state
 				break;	
 			}
+			++encoderCount;// increment count everytime a rising/falling edge occurs
 	}
 	
 //	++counter;
@@ -202,5 +208,5 @@ void ext_interrupt2()
 void displayLED(int encoder_count)
 {
 	GPIOE->BSRRH = (0xF)<<11; // turn off all LEDs on PE11-14
-	GPIOE->BSRRL = encoder_count << 11; // turn on LEDs by shifting bit to match PE11-14
+	GPIOE->BSRRL = abs(encoder_count) << 11; // turn on LEDs by shifting bit to match PE11-14
 }
