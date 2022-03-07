@@ -2,7 +2,6 @@
 #include "stm32f3xx.h"                  
 
 //-------------------------------------------------ENCODER STATE VARIABLES & FUNCTIONS
-
 static volatile bool direction = false; // true = clockwise, false = anti-clockwise 
 static int counter = 0;
 const int states[4] = {0b10,0b00,0b01,0b11}; // states of the encoder stored in an integer array 
@@ -14,13 +13,13 @@ void encoder_signal(); // emulate the encoder signal
 
 
 //------------------------------------------------------DISPLAY ENCODER PULSES ON LEDS
-
-void ext_interrupt(); // initialise external interrupts
+void ext_interrupt1(); // initialise external interrupts
+void ext_interrupt2(); // initialise external interrupts
 static int encoderCount = 0; // counter for encoder pulses 
 void displayLED(int); // display encoder count on the LEDs
 //------------------------------------------------------------------------------------
 
-void EXTI0_IRQHandler() // external interrupt 
+void EXTI0_IRQHandler() // external interrupt channel 0 
 {
 	if (EXTI->PR & EXTI_PR_PR0) // check source
 	{
@@ -32,6 +31,20 @@ void EXTI0_IRQHandler() // external interrupt
 		
 	}
 };
+
+void EXTI1_IRQHandler() // external interrupt channel 1
+{
+	if (EXTI->PR & EXTI_PR_PR1) // check source
+	{
+			EXTI->PR |= EXTI_PR_PR1; // clear flag*
+			
+			if (encoderCount > 15 ){encoderCount=0;}// reset when max 4-bit value is reached
+			displayLED(encoderCount);// display the count on the LED PE.11-14
+			++encoderCount;// increment count everytime a rising/falling edge occurs
+		
+	}
+}
+
 
 
 
@@ -53,7 +66,6 @@ void LED_init() // initialise LED on PE.11-14
 	GPIOE->MODER = (GPIOE->MODER& ~(0x3FC00000))|(0x15400000); // PE.11-14 set to output mode 
 	GPIOE->OTYPER &= ~(0x7800); // Push/pull mode set for PE.11-14
 	GPIOE->PUPDR &= ~(0x3FC00000);// no pullup, pull down for PE.11-14
-		
 }
 
 
@@ -77,8 +89,8 @@ int main(void)
 	NVIC_EnableIRQ(TIM3_IRQn); // Enable Timer 3 interrupt request in NVIC
 	
 	LED_init(); // initialise LEDs on PE11-14
-	ext_interrupt(); // initialise external interrupt on PA.0,PB.0
-	
+	ext_interrupt1(); // initialise external interrupt on PA.0
+	ext_interrupt2();// initialise external interrupt on PA.1
 }
 
 void encoder_signal()
@@ -96,7 +108,7 @@ void encoder_signal()
 	
 	
 	GPIOE -> BSRRH = 0x300; // 0b11<<8, this turns OFF leds on PE8,9 to visualize the encoder signal 	
-	if (direction)// clockwise direction
+	if (!direction)// anti-clockwise direction
 	{
 			switch(state)
 			{
@@ -122,7 +134,7 @@ void encoder_signal()
 			}
 	}
 	
-	else if(!direction) // anti-clock wise direction
+	else if(direction) // clockwise direction
 	{
 		switch(state)
 			{
@@ -151,7 +163,7 @@ void encoder_signal()
 //	++counter;
 }
 
-void ext_interrupt()
+void ext_interrupt1()
 {
 //Enable the system configuration controller to be connected to a system cloc
 	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
@@ -162,11 +174,29 @@ void ext_interrupt()
 	EXTI->RTSR |= EXTI_RTSR_TR0; // trigger on rising edge
 	EXTI->FTSR |= EXTI_FTSR_TR0; // trigger on falling edge
 	
-	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PA;// pin PA.0
-	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PB;// pin PB.0
+//The USR push button (blue button on the STM32F3discovery board) is connected to pin PA.0.
+	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PA;
 	
 	NVIC_EnableIRQ(EXTI0_IRQn); // set the nvic
 	NVIC_SetPriority(EXTI0_IRQn,0);// set priority to 0
+}
+
+void ext_interrupt2()
+{
+	//Enable the system configuration controller to be connected to a system cloc
+	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+	
+//Remove the mask to enable an interrupt to be generated using the EXTI_IMR register
+	EXTI->IMR |= EXTI_IMR_MR1;
+	
+	EXTI->RTSR |= EXTI_RTSR_TR1; // trigger on rising edge
+	EXTI->FTSR |= EXTI_FTSR_TR1; // trigger on falling edge
+	
+// Configure the second channel, PinA.1
+	SYSCFG->EXTICR[1] |= SYSCFG_EXTICR1_EXTI1_PA;
+	
+	NVIC_EnableIRQ(EXTI1_IRQn); // set the nvic
+	NVIC_SetPriority(EXTI1_IRQn,0);// set priority to 0
 }
 
 void displayLED(int encoder_count)
@@ -174,4 +204,3 @@ void displayLED(int encoder_count)
 	GPIOE->BSRRH = (0xF)<<11; // turn off all LEDs on PE11-14
 	GPIOE->BSRRL = encoder_count << 11; // turn on LEDs by shifting bit to match PE11-14
 }
-	
