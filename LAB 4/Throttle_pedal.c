@@ -34,7 +34,6 @@ void DAC_init(void)
   DAC1->CR |= DAC_CR_BOFF1;
   DAC1->CR |= DAC_CR_EN1;
 //-------------------------------------
-	
 }
 
 void TIM3_IRQHandler() // Timer interrupt 1
@@ -46,7 +45,6 @@ void TIM3_IRQHandler() // Timer interrupt 1
  }
 		TIM3->SR &= ~TIM_SR_UIF; // Reset 'update' interrupt flag in the SR register
 }
-
 
 void triangle_emulator(void)
 {
@@ -67,7 +65,6 @@ void encoder_generator(void) // initialise the interrupt for timer interrupt 2
 	GPIOE->MODER = (GPIOE->MODER & ~(0xF0000))| 0x50000;// output mode "01" for pins(8,9)
 	GPIOE->OTYPER &= ~(0x300); // push/pull "00" for pins(8,9)
 	GPIOE->PUPDR &= ~(0xF0000); // no pullup, pull-down for pins(8,9)
-	
 	
 	TIM2->PSC = PRESCALER2;
   TIM2->ARR =  ARR2;// set to 1Hz frequency 
@@ -209,3 +206,80 @@ void OpAmp_init()
 	OPAMP1->CSR = (OPAMP1->CSR & ~0x3C000)|0xC000;// gain set to 16 
 }
 //-------------------------------------------------------------------------------------------------------------------------------
+
+//------------------------------------------------BUTTON INTERRUPT INIT
+void interrupt_init(void)
+{	
+	//Enable the system configuration controller to be connected to a system cloc
+	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+	
+//Remove the mask to enable an interrupt to be generated using the EXTI_IMR register
+	EXTI->IMR |= EXTI_IMR_MR0;
+	
+//Set interrupt trigger to be rising edge, falling edge or both using the Rising Trigger Selection
+	EXTI->RTSR |= EXTI_RTSR_TR0;
+	
+//The USR push button (blue button on the STM32F3discovery board) is connected to pin PA.0.
+	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PA;
+	
+	NVIC_EnableIRQ(EXTI0_IRQn); // set the nvic
+	NVIC_SetPriority(EXTI0_IRQn,0);// set priority to 0
+};
+
+void EXTI0_IRQHandler() // button interrupt on PA.0
+{
+	if (EXTI->PR & EXTI_PR_PR0) // check source
+	{
+		EXTI->PR |= EXTI_PR_PR0; // clear flag*
+		
+		test_options(); // switch state 
+	}
+};
+
+void CountLEDs_init()
+{
+	GPIOE->MODER = (GPIOE->MODER & ~(0xFFC00000))| 0x55400000;// output mode "01" for pins(11-15)
+	GPIOE->OTYPER &= ~(0xF800); // push/pull "00" for pins(11-15)
+	GPIOE->PUPDR &= ~(0xFFC00000); // no pullup, pull-down for pins(11-15)
+}
+
+
+enum tests testing = POTENTIOMETER;
+
+void test_options()
+{	
+		switch (testing)
+		{
+			case POTENTIOMETER:
+			testing = ENCODER;
+			break;
+			
+			case ENCODER:
+			testing = COMBINED_TEST;	
+			break;
+			
+			case COMBINED_TEST:
+			testing = POTENTIOMETER;	
+			break; 
+		}		
+}
+
+void writeLEDs()
+{
+	switch (testing)
+		{
+			case POTENTIOMETER:
+			GPIOE->BSRRL = (ADC1->DR) <<11; // turn ON Leds by shifting bits
+			break;
+			
+			case ENCODER:
+			
+			break;
+			
+			case COMBINED_TEST:
+				
+			break; 
+		}	
+}
+
+//-----------------------------------------------------------------------------------------------------------
