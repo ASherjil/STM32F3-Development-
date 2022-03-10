@@ -17,11 +17,9 @@ static int encoderCount = 0; // counter for encoder pulses
 //--------------------------------------------------------------------
 
 
-
+//-----------------------------------------------------------------POTENTIOMETER INIT--------------------------
 void DAC_init(void)
 {
-
-	GPIOA->MODER |= 0x300; // PA.4 set to analogue mode,Configure ports for DAC 
 	
   RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; //Define the clock pulse to TIM3
   TIM3->PSC = PRESCALER1;
@@ -32,6 +30,7 @@ void DAC_init(void)
 
 //--------------------DAC configuration 
   RCC->APB1ENR |= RCC_APB1ENR_DAC1EN;
+	GPIOA->MODER |= 0x300; // PA.4 set to analogue mode,Configure ports for DAC 
   DAC1->CR |= DAC_CR_BOFF1;
   DAC1->CR |= DAC_CR_EN1;
 //-------------------------------------
@@ -53,6 +52,10 @@ void triangle_emulator(void)
 {
 	DAC1->DHR12R1 = abs((count++ % PERIOD1)-MAX_AMPLITUDE); // triangle wave writing 0-127,127-0 to the DAC
 }
+//-------------------------------------------------------------------------------------------------------
+
+
+//------------------------------------------------------------------------------ENCODER EMULATOR
 
 void encoder_generator(void) // initialise the interrupt for timer interrupt 2
 {
@@ -139,5 +142,70 @@ void encoder_signal() // emulates the encoder signal using state machine mechani
 			}
 			++encoderCount;// increment count everytime a rising/falling edge occurs
 	}
-	
 }
+//-------------------------------------------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------------------ADC and OP-Amp INIT-----
+void wait(int c)
+{
+	int ticks=0;
+	
+	while (ticks<c)// exit when ticks reach the count
+	{
+		++ticks;
+	}
+}
+
+
+void ADC_init()
+{
+	ADC1->CR &= ~(0x30000000); // 0b00 for the ADVREGEN = reset
+	ADC1->CR |= (0x10000000);// 0b01 for the ADVREGEN = enable 
+	
+	RCC->AHBENR |= RCC_AHBENR_GPIOFEN;// enable clock on GPIOF
+	GPIOF->MODER |= 0x30; // analogue mode on PF.2, "11" 
+		
+	wait(100);// 10us delay function 
+		
+	ADC1->CR &= ~(0x40000000);// 0b0 0 single-ended calibration 
+	ADC1->CR |= 0x80000000;// begin calibration 
+	
+	while (ADC1->CR & 0x80000000) {}  // wait for ADCAL to return 0
+		
+	//------------------Enabling clock peripherials
+	RCC->CFGR2 = (RCC->CFGR2 & ~0x1F0)|RCC_CFGR2_ADCPRE12_DIV2;// clear registor first then 10001: PLL clock divided by 2 
+	RCC->AHBENR |= RCC_AHBENR_ADC12EN;
+	ADC1_2_COMMON->CCR |= 0x00010000;
+	//---------------------------------------------
+		
+	ADC1->CR &= ~(0xC);// set ADSTART and JADSTART to 0, "00 00"	
+	
+	ADC1->CFGR = (ADC1->CFGR & ~0x18)|(0x10);// 8 bit resolution 
+	ADC1->CFGR &= ~(0x20);// align right 
+	ADC1->CFGR &= ~(0x2000);// no continous 
+				
+	ADC1->SQR1 = (ADC1->SQR1& ~0x3C0)|0x280;// channel 10 in SQR1, "01010" 
+	ADC1->SQR1 &= ~(0xF);// only one conversion, L is "0000"
+	ADC1->SMPR1 |= 0x38; // 601.5 ADC clock cycles 
+	
+	ADC1->CR |= 0x1; // ADEN set to high to enable ADC
+	
+	while (!(ADC1->ISR & 0x01)) {}// wait for ARDY flag to go high 
+}
+void OpAmp_init()
+{
+//The OpAmp is connected to the system clock via the APB2 peripheral clock bus
+	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+	
+	GPIOA->MODER |= 0xC00;// input PA.5 set to analogue mode
+	GPIOA->MODER |= 0x30; //output PA.2 set to analogue mode "11"
+
+// Enable the OpAmp by setting the OPAMP1EN bit high in the CSR register	
+	OPAMP1->CSR |= 0x00000001;
+//Define the inputs to be used by specifying the correct VM_SEL and VP_SEL bits in the CSR register
+	OPAMP1->CSR |= 0x00000004; // PA.5 as non-inv. Input
+	OPAMP1->CSR |= 0x00000040;// Set VM_SEL to 0b10 to enable PGA mode
+	
+	OPAMP1->CSR = (OPAMP1->CSR & ~0x3C000)|0xC000;// gain set to 16 
+}
+//-------------------------------------------------------------------------------------------------------------------------------
