@@ -25,6 +25,15 @@ void ADC_init(void);
 void wait(int);
 //--------------------------------------------------------------------
 
+//--------------------------------------Button Interrupt PA.0, EXTI0 and STATES 
+void interrupt_init(void);
+void test_options(void);
+enum tests{POTENTIOMETER,ENCODER,COMBINED_TEST};
+void CountLEDs_init(void);
+void writeLEDs(void);
+//-----------------------------------------------------------------------------
+
+
 
 
 #endif
