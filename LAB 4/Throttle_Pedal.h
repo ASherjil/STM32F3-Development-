@@ -14,10 +14,15 @@ void triangle_emulator(void); // write DAC values which output an analogue trian
 //-------------------------------------------------------------------
 
 
-
 //-------------------------------------------------ENCODER EMULATOR
 void encoder_signal(void); // emulate the encoder signal 
 void encoder_generator(void); // initialise the interrupt required to generate the encoder signal 
+//--------------------------------------------------------------------
+
+//-------------------------------------------------Op-Amp and ADC INIT
+void OpAmp_init(void);
+void ADC_init(void);
+void wait(int);
 //--------------------------------------------------------------------
 
 
