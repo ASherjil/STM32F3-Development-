@@ -269,7 +269,7 @@ void writeLEDs()
 	switch (testing)
 		{
 			case POTENTIOMETER:
-			GPIOE->BSRRL = (ADC1->DR) <<11; // turn ON Leds by shifting bits
+				GPIOE->BSRRL = ((ADC1->DR)/4) << 11; // turn ON Leds by shifting bits
 			break;
 			
 			case ENCODER:
@@ -281,5 +281,6 @@ void writeLEDs()
 			break; 
 		}	
 }
+
 
 //-----------------------------------------------------------------------------------------------------------
