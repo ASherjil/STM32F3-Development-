@@ -1,18 +1,13 @@
 #include <stdbool.h>
+#include <stdlib.h>
 #include "stm32f3xx.h"                  
 
-int abs(int a)
-{
-	if (a>0){return a;}
-	else
-		return (-1*a);		
-}
+
 
 
 //-------------------------------------------------ENCODER STATE VARIABLES & FUNCTIONS
 static volatile bool direction = true; // true = clockwise, false = anti-clockwise 
-static int counter = 0;
-const int states[4] = {0b10,0b00,0b01,0b11}; // states of the encoder stored in an integer array 
+const int states[4] = {2,0,1,3}; // states of the encoder stored in an integer array 
 static int state = 0; // state of the encoder
 void encoder_signal(); // emulate the encoder signal 
 //-------------------------------------------------------------------------
@@ -27,14 +22,18 @@ static int encoderCount = 0; // counter for encoder pulses
 void displayLED(int); // display encoder count on the LEDs
 //------------------------------------------------------------------------------------
 
+static int counter1=0;
+static int counter2=0;
+
 void EXTI0_IRQHandler() // external interrupt channel 0 
 {
 	if (EXTI->PR & EXTI_PR_PR0) // check source
 	{
 		EXTI->PR |= EXTI_PR_PR0; // clear flag*
 		
-		if ((encoderCount > 15)||(encoderCount < -15)){encoderCount=0;}// reset when max 4-bit value is reached
+		if (abs(encoderCount)>15){encoderCount=0;}// reset when max 4-bit value is reached
 		displayLED(encoderCount);// display the count on the LED PE.11-14
+		++counter1;
 	}
 };
 
@@ -44,8 +43,9 @@ void EXTI1_IRQHandler() // external interrupt channel 1
 	{
 			EXTI->PR |= EXTI_PR_PR1; // clear flag*
 		
-			if ((encoderCount > 15)||(encoderCount < -15)){encoderCount=0;}// reset when max 4-bit value is reached
-			displayLED(encoderCount);// display the count on the LED PE.11-14		
+			if (abs(encoderCount)>15){encoderCount=0;}// reset when max 4-bit value is reached
+			displayLED(encoderCount);// display the count on the LED PE.11-14
+			++counter2;
 	}
 }
 
@@ -185,10 +185,10 @@ void ext_interrupt2()
 	EXTI->FTSR |= EXTI_FTSR_TR1; // trigger on falling edge
 	
 // Configure the second channel, PinA.1
-	SYSCFG->EXTICR[1] |= SYSCFG_EXTICR1_EXTI1_PA;
+	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI1_PA;
 	
 	NVIC_EnableIRQ(EXTI1_IRQn); // set the nvic
-	NVIC_SetPriority(EXTI1_IRQn,0);// set priority to 0
+	NVIC_SetPriority(EXTI1_IRQn,1);// set priority to 0
 }
 
 void displayLED(int encoder_count)
