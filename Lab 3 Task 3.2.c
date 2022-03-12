@@ -3,27 +3,32 @@
 #include "stm32f3xx.h"                  
 
 
-
-
 //-------------------------------------------------ENCODER STATE VARIABLES & FUNCTIONS
 static volatile bool direction = true; // true = clockwise, false = anti-clockwise 
-const int states[4] = {2,0,1,3}; // states of the encoder stored in an integer array 
+const int states[4] = {2,0,1,3}; // states of the encoder stored in an integer array,{0b10,0b00,0b01,0b11} 
 static int state = 0; // state of the encoder
+void timer_init(void);// initialise timer based interrupt 
 void encoder_signal(); // emulate the encoder signal 
+void encoder_pos1(void);
+void encoder_pos2(void);
+static int channelA[2]={0,0}; // channel A 
+static int channelB[2]={0,0}; // channel B
 //-------------------------------------------------------------------------
-
 
 
 
 //------------------------------------------------------DISPLAY ENCODER PULSES ON LEDS
 void ext_interrupt1(); // initialise external interrupts
 void ext_interrupt2(); // initialise external interrupts
-static int encoderCount = 0; // counter for encoder pulses 
+void interrupt_pins_init(void);// initialise the input external interrupt pins PA0,PA1
+static int encoderCount = 0; // counter for encoder pulses
+void LED_init(void); // initialise LEDs on PE8,9,11-14
 void displayLED(int); // display encoder count on the LEDs
 //------------------------------------------------------------------------------------
 
 static int counter1=0;
 static int counter2=0;
+
 
 void EXTI0_IRQHandler() // external interrupt channel 0 
 {
@@ -32,6 +37,7 @@ void EXTI0_IRQHandler() // external interrupt channel 0
 		EXTI->PR |= EXTI_PR_PR0; // clear flag*
 		
 		if (abs(encoderCount)>15){encoderCount=0;}// reset when max 4-bit value is reached
+		encoder_pos1();
 		displayLED(encoderCount);// display the count on the LED PE.11-14
 		++counter1;
 	}
@@ -44,6 +50,7 @@ void EXTI1_IRQHandler() // external interrupt channel 1
 			EXTI->PR |= EXTI_PR_PR1; // clear flag*
 		
 			if (abs(encoderCount)>15){encoderCount=0;}// reset when max 4-bit value is reached
+			encoder_pos1();
 			displayLED(encoderCount);// display the count on the LED PE.11-14
 			++counter2;
 	}
@@ -60,37 +67,11 @@ void TIM3_IRQHandler()// Timer based interrupt
 		TIM3->SR &= ~TIM_SR_UIF; // Reset 'update' interrupt flag in the SR register
 }
 
-
-void LED_init() // initialise LED on PE.11-14
-{
-	RCC->AHBENR |= RCC_AHBENR_GPIOEEN;// Enable clock on GPIO port E
-	
-	GPIOE->MODER = (GPIOE->MODER& ~(0x3FC00000))|(0x15400000); // PE.11-14 set to output mode 
-	GPIOE->OTYPER &= ~(0x7800); // Push/pull mode set for PE.11-14
-	GPIOE->PUPDR &= ~(0x3FC00000);// no pullup, pull down for PE.11-14
-}
-
-
 int main(void)
 {
-// Enable clock on GPIO port E
-	RCC->AHBENR |= RCC_AHBENR_GPIOEEN;
-	
-//-----------------LED Pins 8,9 set to output mode 
-	GPIOE->MODER = (GPIOE->MODER & ~(0xF0000))| 0x50000;// output mode "01" for pins(8,9)
-	GPIOE->OTYPER &= ~(0x300); // push/pull "00" for pins(8,9)
-	GPIOE->PUPDR &= ~(0xF0000); // no pullup, pull-down for pins(8,9)
-//--------------------------------------------------------------------------------	
-	
-	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; //Define the clock pulse toTIM3
-	TIM3->PSC = 65535;
-	TIM3->ARR = (int)121.0703; // every 1 second the interrupt is called
-	TIM3->CR1 |= TIM_CR1_CEN;//Set Timer Control Register to start timer
-	
-	TIM3->DIER |= TIM_DIER_UIE; // Set DIER register to watch out for an 'Update' Interrupt Enable (UIE) – or 0x00000001
-	NVIC_EnableIRQ(TIM3_IRQn); // Enable Timer 3 interrupt request in NVIC
-	
-	LED_init(); // initialise LEDs on PE11-14
+	LED_init(); // initialise LEDs on PE8,9,11-14
+	timer_init(); // generate encoder signal on PE8,PE9 at 1Hz square wave
+	interrupt_pins_init(); // initialise the input external interrupt pins PA0,PA1
 	ext_interrupt1(); // initialise external interrupt on PA.0
 	ext_interrupt2();// initialise external interrupt on PA.1
 }
@@ -123,7 +104,6 @@ void encoder_signal()
 					state = 0; // move on to the next state
 				break;	
 			}
-			--encoderCount;
 	}
 	
 	else if(direction) // clockwise direction
@@ -150,7 +130,6 @@ void encoder_signal()
 					state = 0; // move on to the next state
 				break;	
 			}
-			++encoderCount;// increment count everytime a rising/falling edge occurs
 	}
 	
 }
@@ -188,11 +167,75 @@ void ext_interrupt2()
 	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI1_PA;
 	
 	NVIC_EnableIRQ(EXTI1_IRQn); // set the nvic
-	NVIC_SetPriority(EXTI1_IRQn,1);// set priority to 0
+	NVIC_SetPriority(EXTI1_IRQn,1);// set priority to 1
 }
 
 void displayLED(int encoder_count)
 {
 	GPIOE->BSRRH = (0xF)<<11; // turn off all LEDs on PE11-14
 	GPIOE->BSRRL = abs(encoder_count) << 11; // turn on LEDs by shifting bit to match PE11-14
+}
+
+void encoder_pos1()
+{
+	channelA[0] = (GPIOA->IDR & 0x1);// read PA.0 digital signal
+	channelB[0] = (GPIOA->IDR & 0x2);// read PA.1 digital signal 
+	
+		if (channelA[0] != channelB[0])
+		{
+			++encoderCount;// increment count for clockwise dir
+		}
+		else
+		{
+			--encoderCount;// decrement count for clockwise dir
+		}
+}
+
+void encoder_pos2()
+{
+	channelA[1] = (GPIOA->IDR & 0x1);// read PA.0 digital signal
+	channelB[1] = (GPIOA->IDR & 0x2);// read PA.1 digital signal 
+	
+		if (channelA[1] == channelB[1])
+		{
+			++encoderCount;// increment count for clockwise dir
+		}
+		else
+		{
+			--encoderCount;// decrement count for clockwise dir
+		}
+}
+
+void LED_init() // initialise LEDs on PE8,9,11-14
+{
+	RCC->AHBENR |= RCC_AHBENR_GPIOEEN;// Enable clock on GPIO port E
+	
+	//-----------------LED Pins 8,9 set to output mode 
+	GPIOE->MODER = (GPIOE->MODER & ~(0xF0000))| 0x50000;// output mode "01" for pins(8,9)
+	GPIOE->OTYPER &= ~(0x300); // push/pull "00" for pins(8,9)
+	GPIOE->PUPDR &= ~(0xF0000); // no pullup, pull-down for pins(8,9)
+//--------------------------------------------------------------------------------	
+	
+	GPIOE->MODER = (GPIOE->MODER& ~(0x3FC00000))|(0x15400000); // PE.11-14 set to output mode 
+	GPIOE->OTYPER &= ~(0x7800); // Push/pull mode set for PE.11-14
+	GPIOE->PUPDR &= ~(0x3FC00000);// no pullup, pull down for PE.11-14
+}
+
+void interrupt_pins_init()
+{
+		RCC->AHBENR |= RCC_AHBENR_GPIOAEN;// Enable clock on GPIO port A
+	
+		GPIOA->MODER &= ~(0xF); // pins A.0+A.1 both set to input mode
+		GPIOA->PUPDR = (GPIOA->PUPDR & ~(0xF))|(0x5); // PA.0 and PA.1 with pullup enabled 
+}
+
+void timer_init()// initialise timer based interrupt 
+{
+	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; //Define the clock pulse toTIM3
+	TIM3->PSC = 65535;
+	TIM3->ARR = (int)121.0703; // every 1 second the interrupt is called
+	TIM3->CR1 |= TIM_CR1_CEN;//Set Timer Control Register to start timer
+	
+	TIM3->DIER |= TIM_DIER_UIE; // Set DIER register to watch out for an 'Update' Interrupt Enable (UIE) – or 0x00000001
+	NVIC_EnableIRQ(TIM3_IRQn); // Enable Timer 3 interrupt request in NVIC
 }
