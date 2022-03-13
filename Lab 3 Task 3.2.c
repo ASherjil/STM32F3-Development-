@@ -8,9 +8,11 @@ static volatile bool direction = true; // true = clockwise, false = anti-clockwi
 const int states[4] = {2,0,1,3}; // states of the encoder stored in an integer array,{0b10,0b00,0b01,0b11} 
 static int state = 0; // state of the encoder
 void timer_init(void);// initialise timer based interrupt 
-void encoder_signal(); // emulate the encoder signal 
+void encoder_signal(void); // emulate the encoder signal 
 void encoder_pos1(void);
 void encoder_pos2(void);
+static int current_state[2]={0,0};
+static int last_state[2]={0,0};
 static int channelA[2]={0,0}; // channel A 
 static int channelB[2]={0,0}; // channel B
 //-------------------------------------------------------------------------
@@ -18,8 +20,8 @@ static int channelB[2]={0,0}; // channel B
 
 
 //------------------------------------------------------DISPLAY ENCODER PULSES ON LEDS
-void ext_interrupt1(); // initialise external interrupts
-void ext_interrupt2(); // initialise external interrupts
+void ext_interrupt1(void); // initialise external interrupts
+void ext_interrupt2(void); // initialise external interrupts
 void interrupt_pins_init(void);// initialise the input external interrupt pins PA0,PA1
 static int encoderCount = 0; // counter for encoder pulses
 void LED_init(void); // initialise LEDs on PE8,9,11-14
@@ -50,7 +52,7 @@ void EXTI1_IRQHandler() // external interrupt channel 1
 			EXTI->PR |= EXTI_PR_PR1; // clear flag*
 		
 			if (abs(encoderCount)>15){encoderCount=0;}// reset when max 4-bit value is reached
-			encoder_pos1();
+			encoder_pos2();
 			displayLED(encoderCount);// display the count on the LED PE.11-14
 			++counter2;
 	}
@@ -167,7 +169,7 @@ void ext_interrupt2()
 	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI1_PA;
 	
 	NVIC_EnableIRQ(EXTI1_IRQn); // set the nvic
-	NVIC_SetPriority(EXTI1_IRQn,1);// set priority to 1
+	NVIC_SetPriority(EXTI1_IRQn,3);// set priority to 1
 }
 
 void displayLED(int encoder_count)
@@ -178,32 +180,42 @@ void displayLED(int encoder_count)
 
 void encoder_pos1()
 {
-	channelA[0] = (GPIOA->IDR & 0x1);// read PA.0 digital signal
-	channelB[0] = (GPIOA->IDR & 0x2);// read PA.1 digital signal 
-	
-		if (channelA[0] != channelB[0])
+	    //Store Current State of CHA
+    current_state[0] = (GPIOA -> IDR & 0x1);
+    //Check if previous state of CHA is different from current state
+    //Which indicates a pulse has elapsed
+    if ((last_state[0] != current_state[0]) && (current_state[0] == 1)) 
 		{
-			++encoderCount;// increment count for clockwise dir
-		}
-		else
-		{
-			--encoderCount;// decrement count for clockwise dir
-		}
+        //Check if CHA state is different to CHB to determine 
+        //direction of rotation
+        //Increment Counter according to direction
+        if ((GPIOA->IDR & 0x2)!=(current_state[0] & 0x2))
+				{
+        encoderCount++;
+				} 
+        else {encoderCount--;}
+    }
+		
+		 last_state[0] = current_state[0];
 }
-
 void encoder_pos2()
 {
-	channelA[1] = (GPIOA->IDR & 0x1);// read PA.0 digital signal
-	channelB[1] = (GPIOA->IDR & 0x2);// read PA.1 digital signal 
-	
-		if (channelA[1] == channelB[1])
+	    //Store Current State of CHA
+    current_state[1] = (GPIOA -> IDR & 0x2);
+    //Check if previous state of CHA is different from current state
+    //Which indicates a pulse has elapsed
+    if ((last_state[1] != current_state[1]) && (current_state[1] == 1)) 
 		{
-			++encoderCount;// increment count for clockwise dir
-		}
-		else
-		{
-			--encoderCount;// decrement count for clockwise dir
-		}
+        //Check if CHA state is the same as CHB to determine 
+        //direction of rotation
+        //Increment Counter according to direction
+        if ((GPIOA->IDR & 0x1)!=(current_state[1] & 0x1))
+				{
+        encoderCount++;
+				} 
+        else {encoderCount--;}
+    }
+		 last_state[1] = current_state[1];
 }
 
 void LED_init() // initialise LEDs on PE8,9,11-14
