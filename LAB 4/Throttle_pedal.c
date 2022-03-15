@@ -10,7 +10,7 @@ static int count = 0;
 
 
 //-------------------------------------------------ENCODER EMULATOR
-static volatile bool direction = true; // true = clockwise, false = anti-clockwise 
+static volatile bool direction = false; // true = clockwise, false = anti-clockwise 
 const int states[4] = {0,2,3,1}; // states of the encoder stored in an integer array,{0b00,0b10,0b11,0b01} 
 static int state = 0; // state of the encoder
 static int encoderCount = 0; // counter for encoder pulses 
@@ -99,11 +99,11 @@ void EXTI1_IRQHandler() // ext interrupt on PA.1
 	{
 		EXTI->PR |= EXTI_PR_PR1; // clear flag*
 		
-		
+		encoder_pos();
 	}
 };
 
-void ext_interrupt2_init(void)// initialise interrupt on PA.1
+void ext_interrupt2_init(void)// initialise interrupt on PC.3
 {
 //Enable the system configuration controller to be connected to a system cloc
 	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
@@ -132,7 +132,7 @@ void EXTI3_IRQHandler() // ext interrupt on PC.3
 	{
 		EXTI->PR |= EXTI_PR_PR3; // clear flag*
 		
-		
+		encoder_pos();
 	}
 };
 
@@ -293,7 +293,7 @@ void EXTI0_IRQHandler() // button interrupt on PA.0
 	{
 		EXTI->PR |= EXTI_PR_PR0; // clear flag*
 		
-		test_options(); // switch state 
+		test_options(); // switch state
 	}
 };
 
@@ -303,6 +303,30 @@ void CountLEDs_init()
 	GPIOE->OTYPER &= ~(0xF800); // push/pull "00" for pins(11-15)
 	GPIOE->PUPDR &= ~(0xFFC00000); // no pullup, pull-down for pins(11-15)
 }
+
+void encoder_pos()
+{
+	    //Store Current State of CHA
+    current_state = ((GPIOA -> IDR & 0x2)>>1); // PA.1
+    //Check if previous state of CHA is different from current state
+    //Which indicates a pulse has elapsed
+    if ((last_state != current_state) && (current_state == 1)) 
+		{
+        //Check if CHA state is different to CHB to determine 
+        //direction of rotation
+        //Increment Counter according to direction
+        if (((GPIOC->IDR & 0x8)>>3)!= current_state)
+				{
+        encoderCount++;
+				} 
+        else {encoderCount--;}
+    }
+		
+		 last_state = current_state;
+		
+		if (abs(encoderCount > 31)){encoderCount=0;}// reset is max 5-bit value is reached 
+}
+
 
 
 enum tests testing = POTENTIOMETER;
@@ -330,11 +354,19 @@ void writeLEDs()
 	switch (testing)
 		{
 			case POTENTIOMETER:
+			
+				ADC1->CR |= 0x4; // enable ADC
+				while (!(ADC1->ISR & 0x4)) {}// wait for EOC flag to go high
+				GPIOE->BSRRH = (0xF800); // turn OFF Leds
 				GPIOE->BSRRL = ((ADC1->DR)/4) << 11; // turn ON Leds by shifting bits, the ADC is scaled to 5-bits 
+			
 			break;
 			
 			case ENCODER:
-						
+				
+				GPIOE->BSRRH = 0xF800; // turn off all LEDs on PE11-15
+				GPIOE->BSRRL = abs(encoderCount) << 11; // turn on LEDs by shifting bit to match PE11-15	
+			
 			break;
 			
 			case COMBINED_TEST:
