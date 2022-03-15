@@ -11,7 +11,7 @@ static int count = 0;
 
 //-------------------------------------------------ENCODER EMULATOR
 static volatile bool direction = true; // true = clockwise, false = anti-clockwise 
-const int states[4] = {2,0,1,3}; // {0b10,0b00,0b01,0b11},states of the encoder stored in an integer array, 
+const int states[4] = {0,2,3,1}; // states of the encoder stored in an integer array,{0b00,0b10,0b11,0b01} 
 static int state = 0; // state of the encoder
 static int encoderCount = 0; // counter for encoder pulses 
 //--------------------------------------------------------------------
@@ -73,6 +73,61 @@ void encoder_generator(void) // initialise the interrupt for timer interrupt 2
 	NVIC_EnableIRQ(TIM2_IRQn); // Enable Timer 3 interrupt request in NVIC
 }
 
+void ext_interrupt1_init(void) // initialise interrupt on PA.1
+{
+		//Enable the system configuration controller to be connected to a system cloc
+	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+	
+//Remove the mask to enable an interrupt to be generated using the EXTI_IMR register
+	EXTI->IMR |= EXTI_IMR_MR1;
+	
+//Set interrupt trigger to be rising edge
+	EXTI->RTSR |= EXTI_RTSR_TR1;
+	
+	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI1_PA;// PA.1
+	
+	NVIC_EnableIRQ(EXTI1_IRQn); // set the nvic
+	NVIC_SetPriority(EXTI1_IRQn,1);// set priority to 1, second highest priority 
+}	
+
+void EXTI1_IRQHandler() // ext interrupt on PA.1
+{
+	if (EXTI->PR & EXTI_PR_PR1) // check source
+	{
+		EXTI->PR |= EXTI_PR_PR1; // clear flag*
+		
+		
+	}
+};
+
+void ext_interrupt2_init(void)// initialise interrupt on PA.1
+{
+//Enable the system configuration controller to be connected to a system cloc
+	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+	
+//Remove the mask to enable an interrupt to be generated using the EXTI_IMR register
+	EXTI->IMR |= EXTI_IMR_MR3;
+	
+//Set interrupt trigger to be rising edge
+	EXTI->RTSR |= EXTI_RTSR_TR3;
+	
+
+	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI3_PC;
+	
+	NVIC_EnableIRQ(EXTI3_IRQn); // set the nvic
+	NVIC_SetPriority(EXTI3_IRQn,2);// set priority to 2, third highest priority 
+}
+
+void EXTI3_IRQHandler() // ext interrupt on PC.3
+{
+	if (EXTI->PR & EXTI_PR_PR3) // check source
+	{
+		EXTI->PR |= EXTI_PR_PR3; // clear flag*
+		
+		
+	}
+};
+
 void TIM2_IRQHandler()
 {
 	if ((TIM2->SR & TIM_SR_UIF) !=0) // Check interrupt source is from the ‘Update’ interrupt flag
@@ -91,26 +146,25 @@ void encoder_signal() // emulates the encoder signal using state machine mechani
 			switch(state)
 			{
 				case 0:
-					GPIOE->BSRRL = (states[0]<<8); // 0b10 << 8  
+					GPIOE->BSRRL = (states[0]<<8); // 0b00 << 8  
 					state = 1; // move on to the next state
 				break;
 				
 				case 1:
-					GPIOE->BSRRL = (states[1]<<8); // 0b00 << 8  
+					GPIOE->BSRRL = (states[3]<<8); // 0b01 << 8  
 					state = 2; // move on to the next state
 				break;
 				
 				case 2:
-					GPIOE->BSRRL = (states[2]<<8); // 0b01 << 8  
+					GPIOE->BSRRL = (states[2]<<8); // 0b11 << 8  
 					state = 3; // move on to the next state
 				break;
 				
 				case 3:
-					GPIOE->BSRRL = (states[3]<<8); // 0b11 << 8  
+					GPIOE->BSRRL = (states[1]<<8); // 0b10 << 8  
 					state = 0; // move on to the next state
 				break;	
 			}
-			--encoderCount;
 	}
 	
 	else if(direction) // clockwise direction
@@ -118,26 +172,25 @@ void encoder_signal() // emulates the encoder signal using state machine mechani
 		switch(state)
 			{
 				case 0:
-					GPIOE->BSRRL = (states[3]<<8); // 0b11 << 8   
+					GPIOE->BSRRL = (states[0]<<8); // 0b00 << 8   
 					state = 1; // move on to the next state
 				break;
 				
 				case 1:
-					GPIOE->BSRRL = (states[2]<<8); // 0b01 << 8   
+					GPIOE->BSRRL = (states[1]<<8); // 0b10 << 8   
 					state = 2; // move on to the next state
 				break;
 				
 				case 2:
-					GPIOE->BSRRL = (states[1]<<8); // 0b00 << 8   
+					GPIOE->BSRRL = (states[2]<<8); // 0b11 << 8   
 					state = 3; // move on to the next state
 				break;
 				
 				case 3:
-					GPIOE->BSRRL = (states[0]<<8); // 0b10 << 8   
+					GPIOE->BSRRL = (states[3]<<8); // 0b01 << 8   
 					state = 0; // move on to the next state
 				break;	
 			}
-			++encoderCount;// increment count everytime a rising/falling edge occurs
 	}
 }
 //-------------------------------------------------------------------------------------------------------------
@@ -207,7 +260,7 @@ void OpAmp_init()
 }
 //-------------------------------------------------------------------------------------------------------------------------------
 
-//------------------------------------------------BUTTON INTERRUPT INIT
+//------------------------------------------------BUTTON INTERRUPT INIT----------------------------------------------------------
 void interrupt_init(void)
 {	
 	//Enable the system configuration controller to be connected to a system cloc
@@ -216,14 +269,14 @@ void interrupt_init(void)
 //Remove the mask to enable an interrupt to be generated using the EXTI_IMR register
 	EXTI->IMR |= EXTI_IMR_MR0;
 	
-//Set interrupt trigger to be rising edge, falling edge or both using the Rising Trigger Selection
+//Set interrupt trigger to be rising edge
 	EXTI->RTSR |= EXTI_RTSR_TR0;
 	
 //The USR push button (blue button on the STM32F3discovery board) is connected to pin PA.0.
 	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PA;
 	
 	NVIC_EnableIRQ(EXTI0_IRQn); // set the nvic
-	NVIC_SetPriority(EXTI0_IRQn,0);// set priority to 0
+	NVIC_SetPriority(EXTI0_IRQn,0);// set priority to 0, highest priority
 };
 
 void EXTI0_IRQHandler() // button interrupt on PA.0
@@ -269,10 +322,11 @@ void writeLEDs()
 	switch (testing)
 		{
 			case POTENTIOMETER:
-				GPIOE->BSRRL = ((ADC1->DR)/4) << 11; // turn ON Leds by shifting bits
+				GPIOE->BSRRL = ((ADC1->DR)/4) << 11; // turn ON Leds by shifting bits, the ADC is scaled to 5-bits 
 			break;
 			
 			case ENCODER:
+			
 			
 			break;
 			
@@ -281,6 +335,5 @@ void writeLEDs()
 			break; 
 		}	
 }
-
 
 //-----------------------------------------------------------------------------------------------------------
