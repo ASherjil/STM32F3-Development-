@@ -77,6 +77,9 @@ void ext_interrupt1_init(void) // initialise interrupt on PA.1
 {
 		//Enable the system configuration controller to be connected to a system cloc
 	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;// Enable clock on GPIO port A
+	GPIOA->MODER &= ~(0xC); // pins A.1 set to input mode
+	GPIOA->PUPDR = (GPIOA->PUPDR & ~(0xC))|(0x4); // PA.1 with pullup enabled 
 	
 //Remove the mask to enable an interrupt to be generated using the EXTI_IMR register
 	EXTI->IMR |= EXTI_IMR_MR1;
@@ -104,6 +107,11 @@ void ext_interrupt2_init(void)// initialise interrupt on PA.1
 {
 //Enable the system configuration controller to be connected to a system cloc
 	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+	
+	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;// Enable clock on GPIO port C
+	GPIOC->MODER &= ~(0xC0); // PC.3 set to input mode
+	GPIOC->PUPDR = (GPIOC->PUPDR & ~(0xC0))|(0x40); // PC.3 with pullup enabled 
+	
 	
 //Remove the mask to enable an interrupt to be generated using the EXTI_IMR register
 	EXTI->IMR |= EXTI_IMR_MR3;
@@ -326,8 +334,7 @@ void writeLEDs()
 			break;
 			
 			case ENCODER:
-			
-			
+						
 			break;
 			
 			case COMBINED_TEST:
