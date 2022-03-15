@@ -5,16 +5,13 @@
 
 //-------------------------------------------------ENCODER STATE VARIABLES & FUNCTIONS
 static volatile bool direction = true; // true = clockwise, false = anti-clockwise 
-const int states[4] = {2,0,1,3}; // states of the encoder stored in an integer array,{0b10,0b00,0b01,0b11} 
+const int states[4] = {0,2,3,1}; // states of the encoder stored in an integer array,{0b00,0b10,0b11,0b01} 
 static int state = 0; // state of the encoder
 void timer_init(void);// initialise timer based interrupt 
 void encoder_signal(void); // emulate the encoder signal 
-void encoder_pos1(void);
-void encoder_pos2(void);
+void encoder_pos(void);
 static int current_state[2]={0,0};
 static int last_state[2]={0,0};
-static int channelA[2]={0,0}; // channel A 
-static int channelB[2]={0,0}; // channel B
 //-------------------------------------------------------------------------
 
 
@@ -39,7 +36,7 @@ void EXTI0_IRQHandler() // external interrupt channel 0
 		EXTI->PR |= EXTI_PR_PR0; // clear flag*
 		
 		if (abs(encoderCount)>15){encoderCount=0;}// reset when max 4-bit value is reached
-		encoder_pos1();
+		encoder_pos();
 		displayLED(encoderCount);// display the count on the LED PE.11-14
 		++counter1;
 	}
@@ -52,7 +49,7 @@ void EXTI1_IRQHandler() // external interrupt channel 1
 			EXTI->PR |= EXTI_PR_PR1; // clear flag*
 		
 			if (abs(encoderCount)>15){encoderCount=0;}// reset when max 4-bit value is reached
-			encoder_pos2();
+			encoder_pos();
 			displayLED(encoderCount);// display the count on the LED PE.11-14
 			++counter2;
 	}
@@ -72,10 +69,11 @@ void TIM3_IRQHandler()// Timer based interrupt
 int main(void)
 {
 	LED_init(); // initialise LEDs on PE8,9,11-14
-	timer_init(); // generate encoder signal on PE8,PE9 at 1Hz square wave
 	interrupt_pins_init(); // initialise the input external interrupt pins PA0,PA1
 	ext_interrupt1(); // initialise external interrupt on PA.0
 	ext_interrupt2();// initialise external interrupt on PA.1
+	timer_init(); // generate encoder signal on PE8,PE9 at 1Hz square wave
+
 }
 
 void encoder_signal()
@@ -87,22 +85,22 @@ void encoder_signal()
 			switch(state)
 			{
 				case 0:
-					GPIOE->BSRRL = (states[0]<<8); // 0b10 << 8  
+					GPIOE->BSRRL = (states[0]<<8); // 0b00 << 8  
 					state = 1; // move on to the next state
 				break;
 				
 				case 1:
-					GPIOE->BSRRL = (states[1]<<8); // 0b00 << 8  
+					GPIOE->BSRRL = (states[3]<<8); // 0b01 << 8  
 					state = 2; // move on to the next state
 				break;
 				
 				case 2:
-					GPIOE->BSRRL = (states[2]<<8); // 0b01 << 8  
+					GPIOE->BSRRL = (states[2]<<8); // 0b11 << 8  
 					state = 3; // move on to the next state
 				break;
 				
 				case 3:
-					GPIOE->BSRRL = (states[3]<<8); // 0b11 << 8  
+					GPIOE->BSRRL = (states[1]<<8); // 0b10 << 8  
 					state = 0; // move on to the next state
 				break;	
 			}
@@ -113,22 +111,22 @@ void encoder_signal()
 		switch(state)
 			{
 				case 0:
-					GPIOE->BSRRL = (states[3]<<8); // 0b11 << 8   
+					GPIOE->BSRRL = (states[0]<<8); // 0b00 << 8   
 					state = 1; // move on to the next state
 				break;
 				
 				case 1:
-					GPIOE->BSRRL = (states[2]<<8); // 0b01 << 8   
+					GPIOE->BSRRL = (states[1]<<8); // 0b10 << 8   
 					state = 2; // move on to the next state
 				break;
 				
 				case 2:
-					GPIOE->BSRRL = (states[1]<<8); // 0b00 << 8   
+					GPIOE->BSRRL = (states[2]<<8); // 0b11 << 8   
 					state = 3; // move on to the next state
 				break;
 				
 				case 3:
-					GPIOE->BSRRL = (states[0]<<8); // 0b10 << 8   
+					GPIOE->BSRRL = (states[3]<<8); // 0b01 << 8   
 					state = 0; // move on to the next state
 				break;	
 			}
@@ -178,7 +176,7 @@ void displayLED(int encoder_count)
 	GPIOE->BSRRL = abs(encoder_count) << 11; // turn on LEDs by shifting bit to match PE11-14
 }
 
-void encoder_pos1()
+void encoder_pos()
 {
 	    //Store Current State of CHA
     current_state[0] = (GPIOA -> IDR & 0x1);
@@ -189,7 +187,7 @@ void encoder_pos1()
         //Check if CHA state is different to CHB to determine 
         //direction of rotation
         //Increment Counter according to direction
-        if ((GPIOA->IDR & 0x2)!=(current_state[0] & 0x2))
+        if (((GPIOA->IDR & 0x2)>>1)!= current_state[0] )
 				{
         encoderCount++;
 				} 
@@ -198,26 +196,28 @@ void encoder_pos1()
 		
 		 last_state[0] = current_state[0];
 }
+/*
 void encoder_pos2()
 {
-	    //Store Current State of CHA
-    current_state[1] = (GPIOA -> IDR & 0x2);
+    //Store Current State of CHA
+    current_state[1] = (GPIOA -> IDR & 0x1);
     //Check if previous state of CHA is different from current state
     //Which indicates a pulse has elapsed
     if ((last_state[1] != current_state[1]) && (current_state[1] == 1)) 
 		{
-        //Check if CHA state is the same as CHB to determine 
+        //Check if CHA state is different to CHB to determine 
         //direction of rotation
         //Increment Counter according to direction
-        if ((GPIOA->IDR & 0x1)!=(current_state[1] & 0x1))
+        if ((GPIOA->IDR & 0x2)!=(current_state[1]))
 				{
         encoderCount++;
 				} 
         else {encoderCount--;}
     }
+		
 		 last_state[1] = current_state[1];
 }
-
+*/
 void LED_init() // initialise LEDs on PE8,9,11-14
 {
 	RCC->AHBENR |= RCC_AHBENR_GPIOEEN;// Enable clock on GPIO port E
