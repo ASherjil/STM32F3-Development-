@@ -4,7 +4,7 @@
 #define PRESCALER1 255 // for 255 Hz frequency, DAC/triangle wave 
 #define PRESCALER2 65535 // for 1 hz encoder 
 #define ARR1 121  
-#define ARR2 121
+#define ARR2 29
 #define PERIOD1 255
 #define MAX_AMPLITUDE 127
 
