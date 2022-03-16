@@ -13,7 +13,8 @@ static int count = 0;
 static volatile bool direction = false; // true = clockwise, false = anti-clockwise 
 const int states[4] = {0,2,3,1}; // states of the encoder stored in an integer array,{0b00,0b10,0b11,0b01} 
 static int state = 0; // state of the encoder
-static int encoderCount = 0; // counter for encoder pulses 
+static int encoderCount = 0; // counter for encoder pulses
+static int encoder_dir_counter = 0; // counter for inverting encoder direction to match triangular wave
 //--------------------------------------------------------------------
 
 
@@ -147,7 +148,15 @@ void TIM2_IRQHandler()
 
 void encoder_signal() // emulates the encoder signal using state machine mechanism 
 {
-			
+		
+	if (encoder_dir_counter > 255)// 256 means a total encoder counts of 128 have occured
+	{
+		encoder_dir_counter =0 ;// reset
+		// TOGGLE DIRECTION TO EMULATE A TRIANGLE WAVE
+		if (direction){direction=false;}
+		else if(!direction){direction=true;}
+	} 
+	
 	GPIOE -> BSRRH = 0x300; // 0b11<<8, this turns OFF leds on PE8,9 to visualize the encoder signal 	
 	if (!direction)// anti-clockwise direction
 	{
@@ -200,6 +209,7 @@ void encoder_signal() // emulates the encoder signal using state machine mechani
 				break;	
 			}
 	}
+	++encoder_dir_counter;
 }
 //-------------------------------------------------------------------------------------------------------------
 
@@ -324,7 +334,10 @@ void encoder_pos()
 		
 		 last_state = current_state;
 		
-		if (abs(encoderCount > 31)){encoderCount=0;}// reset is max 5-bit value is reached 
+		if ((encoderCount > 31)||(encoderCount < -31) )// reset is max 5-bit value is reached 
+		{
+			encoderCount=0;
+		}
 }
 
 
