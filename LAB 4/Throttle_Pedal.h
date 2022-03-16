@@ -2,9 +2,9 @@
 #define THROTTLE_PEDAL_H
 
 #define PRESCALER1 255 // for 255 Hz frequency, DAC/triangle wave 
-#define PRESCALER2 65535 // for 1 hz encoder 
+#define PRESCALER2 255 // for 1 hz encoder, triangluar wave simuation 
 #define ARR1 121  
-#define ARR2 29
+#define ARR2 60
 #define PERIOD1 255
 #define MAX_AMPLITUDE 127
 
@@ -17,7 +17,7 @@ void triangle_emulator(void); // write DAC values which output an analogue trian
 //-------------------------------------------------ENCODER EMULATOR
 void encoder_signal(void); // emulate the encoder signal on PE.8 and PE.9 
 void encoder_generator(void); // initialise the interrupt required to generate the encoder signal
-void ext_interrupt1_init(void); // initialise interrupt pins, PA.1
+void ext_interrupt1_init(void); // initialise interrupt pins, PA.1(HIGHER priority)
 void ext_interrupt2_init(void);// initialise interrupt pins , PC.3
 void encoder_pos(void); // increment CW, decrement 
 static int current_state=0;
