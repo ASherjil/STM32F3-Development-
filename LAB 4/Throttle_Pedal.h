@@ -20,8 +20,6 @@ void encoder_generator(void); // initialise the interrupt required to generate t
 void ext_interrupt1_init(void); // initialise interrupt pins, PA.1(HIGHER priority)
 void ext_interrupt2_init(void);// initialise interrupt pins , PC.3
 void encoder_pos(void); // increment CW, decrement 
-static int current_state=0;
-static int last_state=0;
 //--------------------------------------------------------------------
 
 //-------------------------------------------------Op-Amp and ADC INIT
