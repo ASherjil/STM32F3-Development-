@@ -56,7 +56,7 @@ void triangle_emulator(void)
 //-------------------------------------------------------------------------------------------------------
 
 
-//------------------------------------------------------------------------------ENCODER EMULATOR
+//------------------------------------------------------------------------------ENCODER EMULATOR---------
 
 void encoder_generator(void) // initialise the interrupt for timer interrupt 2
 {
@@ -78,11 +78,12 @@ void encoder_generator(void) // initialise the interrupt for timer interrupt 2
 
 void ext_interrupt1_init(void) // initialise interrupt on PA.1
 {
+	GPIOA->MODER &= ~(0xC); // pins A.1 set to input mode
+	GPIOA->PUPDR = (GPIOA->PUPDR & ~(0xC))|(0x4); // PA.1 with pullup enabled 
+	
 		//Enable the system configuration controller to be connected to a system cloc
 	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;// Enable clock on GPIO port A
-	GPIOA->MODER &= ~(0xC); // pins A.1 set to input mode
-	GPIOA->PUPDR = (GPIOA->PUPDR & ~(0xC))|(0x4); // PA.1 with pullup enabled 
 	
 //Remove the mask to enable an interrupt to be generated using the EXTI_IMR register
 	EXTI->IMR |= EXTI_IMR_MR1;
@@ -108,13 +109,14 @@ void EXTI1_IRQHandler() // ext interrupt on PA.1
 
 void ext_interrupt2_init(void)// initialise interrupt on PC.3
 {
+	
+	GPIOC->MODER &= ~(0xC0); // PC.3 set to input mode
+	GPIOC->PUPDR = (GPIOC->PUPDR & ~(0xC0))|(0x40); // PC.3 with pullup enabled 
+	
 //Enable the system configuration controller to be connected to a system cloc
 	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
 	
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;// Enable clock on GPIO port C
-	GPIOC->MODER &= ~(0xC0); // PC.3 set to input mode
-	GPIOC->PUPDR = (GPIOC->PUPDR & ~(0xC0))|(0x40); // PC.3 with pullup enabled 
-	
 	
 //Remove the mask to enable an interrupt to be generated using the EXTI_IMR register
 	EXTI->IMR |= EXTI_IMR_MR3;
@@ -212,7 +214,7 @@ void encoder_signal() // emulates the encoder signal using state machine mechani
 	}
 	++encoder_dir_counter;
 }
-//-------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------------------ADC and OP-Amp INIT-----
 void wait(int c)
@@ -310,9 +312,9 @@ void EXTI0_IRQHandler() // button interrupt on PA.0
 
 void CountLEDs_init()
 {
-	GPIOE->MODER = (GPIOE->MODER & ~(0xFFC00000))| 0x55400000;// output mode "01" for pins(11-15)
-	GPIOE->OTYPER &= ~(0xF800); // push/pull "00" for pins(11-15)
-	GPIOE->PUPDR &= ~(0xFFC00000); // no pullup, pull-down for pins(11-15)
+	GPIOE->MODER = (GPIOE->MODER & ~(0xFFFF0000))| 0x55550000;// output mode "01" for pins(8-15)
+	GPIOE->OTYPER &= ~(0xFF00); // push/pull "00" for pins(8-15)
+	GPIOE->PUPDR &= ~(0xFFFF0000); // no pullup, pull-down for pins(8-15)
 }
 
 void encoder_pos()
@@ -368,25 +370,43 @@ void writeLEDs()
 	switch (testing)
 		{
 			case POTENTIOMETER:
+				
+				GPIOE->BSRRH = (0xFE00);  // turn OFF Leds PE.9-PE.15
+			
+				if(!(GPIOE->IDR & 0x100)) // turn ON Led PE.8 if OFF
+				{
+					GPIOE->BSRRL = 0x100; 
+				}
 			
 				ADC1->CR |= 0x4; // enable ADC
 				while (!(ADC1->ISR & 0x4)) {}// wait for EOC flag to go high
-				GPIOE->BSRRH = (0xF800); // turn OFF Leds
 				GPIOE->BSRRL = ((ADC1->DR)/4) << 11; // turn ON Leds by shifting bits, the ADC is scaled to 5-bits 
 			
 			break;
 			
 			case ENCODER:
 				
-				GPIOE->BSRRH = 0xF800; // turn off all LEDs on PE11-15
+				GPIOE->BSRRH = (0xFD00); // turn OFF Leds PE.8, PE.10-15
+				
+				if(!(GPIOE->IDR & 0x200)) // turn ON Led PE.8 if OFF
+				{
+					GPIOE->BSRRL = 0x200; 
+				}
+				
+				
 				GPIOE->BSRRL = abs(encoderCount) << 11; // turn on LEDs by shifting bit to match PE11-15	
 			
 			break;
 			
 			case COMBINED_TEST:
 				
+				GPIOE->BSRRH = (0xFB00); // turn OFF Leds PE.8-9, PE.11-15
+				
+				if(!(GPIOE->IDR & 0x400)) // turn ON Led PE.10 if OFF
+				{
+					GPIOE->BSRRL = 0x400; 
+				}
+				
 			break; 
 		}	
 }
-
-//-----------------------------------------------------------------------------------------------------------
