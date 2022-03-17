@@ -151,11 +151,10 @@ void TIM2_IRQHandler()
 void encoder_signal() // emulates the encoder signal using state machine mechanism 
 {
 		
-	if (encoder_dir_counter > 256)// 256 means a total encoder counts of 128 have occured
+	if (encoder_dir_counter > 256)// 256 means a total(CHA+CHB) encoder counts of 128 have occured
 	{
 		encoder_dir_counter =0 ;// reset
-		// TOGGLE DIRECTION TO EMULATE A TRIANGLE WAVE
-		if (direction){direction=false;}
+		if (direction){direction=false;}// TOGGLE DIRECTION TO EMULATE A TRIANGLE WAVE
 		else if(!direction){direction=true;}
 	} 
 	
