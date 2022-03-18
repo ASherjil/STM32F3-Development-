@@ -22,7 +22,7 @@ int main()
 	
 	TIM1->CCR1 = 2; //determine the duty cycle, 10%
 	TIM1->CCR3 = 10; //determine the duty cycle, 50%
-	TIM1->CCR4 = 18; //determine the duty cycle, 90&
+	TIM1->CCR4 = 18; //determine the duty cycle, 90%
 	
 //Enable the Channel chosen to be output to the GPIO pin
 	TIM1->BDTR |= TIM_BDTR_MOE;// 0x00008000
