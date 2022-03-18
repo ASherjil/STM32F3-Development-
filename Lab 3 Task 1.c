@@ -1,5 +1,5 @@
 #include "stm32f3xx.h"                  // Device header
-#include <stdbool.h>
+
 
 
 int main()
@@ -27,10 +27,10 @@ int main()
 //Enable the Channel chosen to be output to the GPIO pin
 	TIM1->BDTR |= TIM_BDTR_MOE;// 0x00008000
 //	TIM1->CCER |= TIM_CCER_CC1E;//0x00000001, channel 1
-	TIM1->CCER = (TIM1->CCER & ~0x1101) | 0x1101; // channel 3 and channel 4
+	TIM1->CCER |= 0x1101; // channel 1,3 and channel 4,{capture/compare output "enable"}
 //------------------------------------------------------
 
-	TIM1->CR1 |= TIM_CR1_CEN;
+	TIM1->CR1 |= TIM_CR1_CEN; // enable timer 
 	
-//	GPIOE->BSRRL = (GPIOE->BSRRL & ~0x6200)|0x6200;// turn on LEDs	
+	GPIOE->BSRRL |= 0x6200;// turn on LEDs(PE.9,PE.13 and PE.14)
 }
