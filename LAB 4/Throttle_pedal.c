@@ -60,14 +60,14 @@ void triangle_emulator(void)
 
 void encoder_generator(void) // initialise the interrupt for timer interrupt 2
 {
-	// Enable clock on GPIO port E
-	RCC->AHBENR |= RCC_AHBENR_GPIOEEN;
+	// Enable clock on GPIO port B
+	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
 	
 	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN; // enable clock for TIM2
 	
-	GPIOE->MODER = (GPIOE->MODER & ~(0xF0000))| 0x50000;// output mode "01" for pins(8,9)
-	GPIOE->OTYPER &= ~(0x300); // push/pull "00" for pins(8,9)
-	GPIOE->PUPDR &= ~(0xF0000); // no pullup, pull-down for pins(8,9)
+	GPIOB->MODER = (GPIOB->MODER & ~(0xF000000))| 0x5000000;// output mode "01" for PB(12,13)
+	GPIOB->OTYPER &= ~(0x3000); // push/pull "00" for pins(12,13)
+	GPIOB->PUPDR &= ~(0xF000000); // no pullup, pull-down for pins(12,13)
 	
 	TIM2->PSC = PRESCALER2;
   TIM2->ARR =  ARR2;// set to 1Hz frequency 
@@ -160,28 +160,28 @@ void encoder_signal() // emulates the encoder signal using state machine mechani
 		else if(!direction){direction=true;}
 	} 
 	
-	GPIOE -> BSRRH = 0x300; // 0b11<<8, this turns OFF leds on PE8,9 to visualize the encoder signal 	
+	GPIOB -> BSRRH = 0x3000; // 0b11<<12, this turns OFF leds on PB12,13 to visualize the encoder signal 	
 	if (!direction)// anti-clockwise direction
 	{
 			switch(state)
 			{
 				case 0:
-					GPIOE->BSRRL = (states[0]<<8); // 0b00 << 8  
+					GPIOB->BSRRL = (states[0]<<12); // 0b00 << 12  
 					state = 1; // move on to the next state
 				break;
 				
 				case 1:
-					GPIOE->BSRRL = (states[3]<<8); // 0b01 << 8  
+					GPIOB->BSRRL = (states[3]<<12); // 0b01 << 12  
 					state = 2; // move on to the next state
 				break;
 				
 				case 2:
-					GPIOE->BSRRL = (states[2]<<8); // 0b11 << 8  
+					GPIOB->BSRRL = (states[2]<<12); // 0b11 << 12  
 					state = 3; // move on to the next state
 				break;
 				
 				case 3:
-					GPIOE->BSRRL = (states[1]<<8); // 0b10 << 8  
+					GPIOB->BSRRL = (states[1]<<12); // 0b10 << 12  
 					state = 0; // move on to the next state
 				break;	
 			}
@@ -192,22 +192,22 @@ void encoder_signal() // emulates the encoder signal using state machine mechani
 		switch(state)
 			{
 				case 0:
-					GPIOE->BSRRL = (states[0]<<8); // 0b00 << 8   
+					GPIOB->BSRRL = (states[0]<<12); // 0b00 << 12   
 					state = 1; // move on to the next state
 				break;
 				
 				case 1:
-					GPIOE->BSRRL = (states[1]<<8); // 0b10 << 8   
+					GPIOB->BSRRL = (states[1]<<12); // 0b10 << 12   
 					state = 2; // move on to the next state
 				break;
 				
 				case 2:
-					GPIOE->BSRRL = (states[2]<<8); // 0b11 << 8   
+					GPIOB->BSRRL = (states[2]<<12); // 0b11 << 12   
 					state = 3; // move on to the next state
 				break;
 				
 				case 3:
-					GPIOE->BSRRL = (states[3]<<8); // 0b01 << 8   
+					GPIOB->BSRRL = (states[3]<<12); // 0b01 << 12   
 					state = 0; // move on to the next state
 				break;	
 			}
@@ -312,6 +312,7 @@ void EXTI0_IRQHandler() // button interrupt on PA.0
 
 void CountLEDs_init()
 {
+	RCC->AHBENR |=  RCC_AHBENR_GPIOEEN;// Enable clock on GPIO port C
 	GPIOE->MODER = (GPIOE->MODER & ~(0xFFFF0000))| 0x55550000;// output mode "01" for pins(8-15)
 	GPIOE->OTYPER &= ~(0xFF00); // push/pull "00" for pins(8-15)
 	GPIOE->PUPDR &= ~(0xFFFF0000); // no pullup, pull-down for pins(8-15)
@@ -410,3 +411,5 @@ void writeLEDs()
 			break; 
 		}	
 }
+
+//-----------------------------------------------------------------------------------------------------------
