@@ -21,9 +21,9 @@ static int encoder_dir_counter = 0; // counter for inverting encoder direction t
 
 
 //---------------------------------------------------------COMPUTING 5-POINT MOVING AVG
-static int j=0;
+static int j=0;// index for cycling through array
 int storage[5]={0};// store values from ADC
-int sum=0;
+double sum=0,avg=0; // variables to find avg 
 //-------------------------------------------------------------------------------------
 
 
@@ -60,7 +60,7 @@ void TIM3_IRQHandler() // Timer interrupt 1
 void triangle_emulator(void)
 {
 	DAC1->DHR12R1 = abs((count++ % PERIOD1)-MAX_AMPLITUDE); // triangle wave writing 0-127,127-0 to the DAC
-	if (j>4){j=0;}
+	if (j>4){j=0;}// cycle through the storage array 
 	storage[j++]= DAC1->DHR12R1;// store results in the array 
 }
 //-------------------------------------------------------------------------------------------------------
@@ -163,7 +163,7 @@ void TIM2_IRQHandler()
 void encoder_signal() // emulates the encoder signal using state machine mechanism 
 {
 		
-	if (encoder_dir_counter > 256)// 256 means a total(CHA+CHB) encoder counts of 128 have occured
+	if (encoder_dir_counter > 128)// 128 means a total(CHA+CHB) encoder counts of 64 have occured
 	{
 		encoder_dir_counter =0 ;// reset
 		if (direction){direction=false;}// TOGGLE DIRECTION TO EMULATE A TRIANGLE WAVE
@@ -418,17 +418,18 @@ void writeLEDs()
 					GPIOE->BSRRL = 0x400;  
 				}
 				
-				__disable_irq(); // disable interrupts
+					__disable_irq(); // disable interrupts
+				
 					for (size_t i=0;i<5;++i)
 					{
-						sum += storage[i];
+						sum += (storage[i]/4); // divide the DAC/ADC numbers by 4 to scale them 
 					}					
-				__enable_irq(); // enable interrupts 
+					__enable_irq(); // enable interrupts 
 					
-					sum /= 5;// avg
-					GPIOE->BSRRL = ((sum+encoderCount)/2)<<11;
+					avg = ((sum/5)+abs(encoderCount))/2; // sum/5 = avg of POT , (avg of POT + encoder)/2
+					
+					GPIOE->BSRRL = ((int)(avg)) << 11; // cast the decimal value to int 
 					sum = 0;
-					
 			break; 
 		}	
 }
