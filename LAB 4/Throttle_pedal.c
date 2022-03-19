@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
+#include <math.h>
 #include "stm32f3xx.h"                  // Device header
 #include "Throttle_pedal.h"
 
@@ -428,7 +429,7 @@ void writeLEDs()
 					
 					avg = ((sum/5)+abs(encoderCount))/2; // sum/5 = avg of POT , (avg of POT + encoder)/2
 					
-					GPIOE->BSRRL = ((int)(avg)) << 11; // cast the decimal value to int 
+					GPIOE->BSRRL = ((int)round(avg)) << 11; // cast the decimal value to int 
 					sum = 0;
 			break; 
 		}	
