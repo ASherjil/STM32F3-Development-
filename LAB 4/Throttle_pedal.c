@@ -20,6 +20,14 @@ static int encoder_dir_counter = 0; // counter for inverting encoder direction t
 //--------------------------------------------------------------------
 
 
+//---------------------------------------------------------COMPUTING 5-POINT MOVING AVG
+static int j=0;
+int storage[5]={0};// store values from ADC
+int sum=0;
+//-------------------------------------------------------------------------------------
+
+
+
 //-----------------------------------------------------------------POTENTIOMETER INIT--------------------------
 void DAC_init(void)
 {
@@ -52,6 +60,8 @@ void TIM3_IRQHandler() // Timer interrupt 1
 void triangle_emulator(void)
 {
 	DAC1->DHR12R1 = abs((count++ % PERIOD1)-MAX_AMPLITUDE); // triangle wave writing 0-127,127-0 to the DAC
+	if (j>4){j=0;}
+	storage[j++]= DAC1->DHR12R1;// store results in the array 
 }
 //-------------------------------------------------------------------------------------------------------
 
@@ -405,9 +415,20 @@ void writeLEDs()
 				
 				if(!(GPIOE->IDR & 0x400)) // turn ON Led PE.10 if OFF
 				{
-					GPIOE->BSRRL = 0x400; 
+					GPIOE->BSRRL = 0x400;  
 				}
 				
+				__disable_irq(); // disable interrupts
+					for (size_t i=0;i<5;++i)
+					{
+						sum += storage[i];
+					}					
+				__enable_irq(); // enable interrupts 
+					
+					sum /= 5;// avg
+					GPIOE->BSRRL = ((sum+encoderCount)/2)<<11;
+					sum = 0;
+					
 			break; 
 		}	
 }
