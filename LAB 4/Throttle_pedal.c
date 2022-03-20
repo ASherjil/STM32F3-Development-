@@ -16,14 +16,14 @@ const int states[4] = {0,2,3,1}; // states of the encoder stored in an integer a
 static int state = 0; // state of the encoder
 static int current_state=0; // for position measurement
 static int last_state=0;// for position 
-static int encoderCount = 0; // counter for encoder pulses
+static int encoderCount = 63; // counter for encoder pulses
 static int encoder_dir_counter = 0; // counter for inverting encoder direction to match triangular wave
 //--------------------------------------------------------------------
 
 
 //---------------------------------------------------------COMPUTING 5-POINT MOVING AVG
 static int j=0;// index for cycling through array
-int storage[5]={0};// store values from ADC
+double storage[5]={0};// store values from ADC
 double sum=0,avg=0; // variables to find avg 
 //-------------------------------------------------------------------------------------
 
@@ -62,7 +62,7 @@ void triangle_emulator(void)
 {
 	DAC1->DHR12R1 = abs((count++ % PERIOD1)-MAX_AMPLITUDE); // triangle wave writing 0-127,127-0 to the DAC
 	if (j>4){j=0;}// cycle through the storage array 
-	storage[j++]= DAC1->DHR12R1;// store results in the array 
+	storage[j++]= (DAC1->DHR12R1);// store results in the array
 }
 //-------------------------------------------------------------------------------------------------------
 
@@ -80,8 +80,8 @@ void encoder_generator(void) // initialise the interrupt for timer interrupt 2
 	GPIOB->OTYPER &= ~(0x3000); // push/pull "00" for pins(12,13)
 	GPIOB->PUPDR &= ~(0xF000000); // no pullup, pull-down for pins(12,13)
 	
-	TIM2->PSC = PRESCALER2;
-  TIM2->ARR =  ARR2;// set to 1Hz frequency 
+	TIM2->PSC = 389;
+  TIM2->ARR =  39;// set to 512Hz 
 	TIM2->CR1 |= TIM_CR1_CEN;//  timer action is set in motion with the ‘enable’ command
 	TIM2->DIER |= TIM_DIER_UIE; // Set DIER register to watch out for an 'Update' Interrupt Enable (UIE) – or 0x00000001
 	NVIC_EnableIRQ(TIM2_IRQn); // Enable Timer 3 interrupt request in NVIC
@@ -164,7 +164,7 @@ void TIM2_IRQHandler()
 void encoder_signal() // emulates the encoder signal using state machine mechanism 
 {
 		
-	if (encoder_dir_counter > 128)// 128 means a total(CHA+CHB) encoder counts of 64 have occured
+	if (encoder_dir_counter > 255)// 128 means a total(CHA+CHB) encoder counts of 64 have occured
 	{
 		encoder_dir_counter =0 ;// reset
 		if (direction){direction=false;}// TOGGLE DIRECTION TO EMULATE A TRIANGLE WAVE
@@ -349,7 +349,7 @@ void encoder_pos()
 		
 		 last_state = current_state;
 		
-		if ((encoderCount > 31)||(encoderCount < -31) )// reset is max 5-bit value is reached 
+		if ((encoderCount > 63)||(encoderCount < -63) )// reset is max value is reached
 		{
 			encoderCount=0;
 		}
@@ -406,7 +406,7 @@ void writeLEDs()
 				}
 				
 				
-				GPIOE->BSRRL = abs(encoderCount) << 11; // turn on LEDs by shifting bit to match PE11-15	
+				GPIOE->BSRRL = abs(encoderCount/2) << 11; // turn on LEDs by shifting bit to match PE11-15	
 			
 			break;
 			
@@ -423,11 +423,11 @@ void writeLEDs()
 				
 					for (size_t i=0;i<5;++i)
 					{
-						sum += (storage[i]/4); // divide the DAC/ADC numbers by 4 to scale them 
+						sum += storage[i]/4;// divide by 4 for scaling numbers  
 					}					
 					__enable_irq(); // enable interrupts 
 					
-					avg = ((sum/5)+abs(encoderCount))/2; // sum/5 = avg of POT , (avg of POT + encoder)/2
+					avg = ((sum/5)+abs(encoderCount/2))/2; // sum/5 = avg of POT , (avg of POT + encoder)/2
 					
 					GPIOE->BSRRL = ((int)round(avg)) << 11; // cast the decimal value to int 
 					sum = 0;
