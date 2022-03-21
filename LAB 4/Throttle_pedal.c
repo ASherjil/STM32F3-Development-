@@ -16,7 +16,7 @@ const int states[4] = {0,2,3,1}; // states of the encoder stored in an integer a
 static int state = 0; // state of the encoder
 static int current_state=0; // for position measurement
 static int last_state=0;// for position 
-static int encoderCount = 63; // counter for encoder pulses
+static int encoderCount = 64; // counter for encoder pulses
 static int encoder_dir_counter = 0; // counter for inverting encoder direction to match triangular wave
 //--------------------------------------------------------------------
 
@@ -164,7 +164,7 @@ void TIM2_IRQHandler()
 void encoder_signal() // emulates the encoder signal using state machine mechanism 
 {
 		
-	if (encoder_dir_counter > 255)// 128 means a total(CHA+CHB) encoder counts of 64 have occured
+	if (encoder_dir_counter > 256)// 257 means a total(CHA+CHB) encoder counts of 64 have occured
 	{
 		encoder_dir_counter =0 ;// reset
 		if (direction){direction=false;}// TOGGLE DIRECTION TO EMULATE A TRIANGLE WAVE
@@ -349,10 +349,10 @@ void encoder_pos()
 		
 		 last_state = current_state;
 		
-		if ((encoderCount > 63)||(encoderCount < -63) )// reset is max value is reached
-		{
-			encoderCount=0;
-		}
+//		if ((encoderCount > 63)||(encoderCount < -63) )// reset is max value is reached
+//		{
+//			encoderCount=0;
+//		}
 }
 
 
