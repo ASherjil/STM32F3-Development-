@@ -32,5 +32,4 @@ int main()
 
 	TIM1->CR1 |= TIM_CR1_CEN; // enable timer 
 	
-	GPIOE->BSRRL |= 0x6200;// turn on LEDs(PE.9,PE.13 and PE.14)
 }
