@@ -1,7 +1,7 @@
 #include "stm32f3xx.h"                  // Device header
 
 static int index=1;// starting index, could be anything 0-4
-int arr[5]={0,5,10,15,20}; // calculated values for CCR1
+int arr[5]={0,1000,2000,3000,4000}; // calculated values for CCR1
 
 void PWM_init(int);
 void interrupt_init();
@@ -55,8 +55,8 @@ void PWM_init(int dutyCycle)
 	
 	GPIOE-> AFR[1] = (GPIOE->AFR[1] & ~(0xFF000F0))|0x2200020; // PE.9,PE.13 and PE.14 
 
-	TIM1->PSC = 3999;
-	TIM1->ARR= 19; // around 100Hz or 0.01s
+	TIM1->PSC = 19;
+	TIM1->ARR= 3999; // around 100Hz or 0.01s
 	
 	TIM1->CCMR1 |= 0x00000060; // channel 1 for PE.9
 	TIM1->CCMR2 = (TIM1->CCMR2 & ~0xF0F0)|0x6060;// channel 3 and 4(PE.13 and PE.14 )
