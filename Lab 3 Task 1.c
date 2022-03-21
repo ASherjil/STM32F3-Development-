@@ -9,20 +9,20 @@ int main()
 	
 	GPIOE->MODER = (GPIOE->MODER & (~0x3C0C0000))|0x28080000; // PE.9,PE13,PE14 configured to alternate mode
 	
-	GPIOE->OTYPER = (GPIOE->OTYPER& (~0x6200)) | 0x6200; // open drain for PE9,PE13,PE14
-	GPIOE->PUPDR = (GPIOE->PUPDR & (~0x3C0C0000))|0x14040000; // pull up registor for PE9,PE13,PE14 
+	GPIOE->OTYPER &= ~(0x6200); // Push/pull for PE9,PE13,PE14
+	GPIOE->PUPDR &= 0x3C0C0000; // No pull-up,pull down for PE9,PE13,PE14 
 	
 	GPIOE-> AFR[1] = (GPIOE->AFR[1] & ~(0xFF000F0))|0x2200020; // PE.9,PE.13 and PE.14 
 
-	TIM1->PSC = 3999;
-	TIM1->ARR= 19; // around 100Hz or 0.01s
+	TIM1->PSC = 19;
+	TIM1->ARR= 3999; // around 100Hz or 0.01s
 	
 	TIM1->CCMR1 |= 0x00000060; // channel 1 for PE.9
 	TIM1->CCMR2 = (TIM1->CCMR2 & ~0xF0F0)|0x6060;// channel 3 and 4(PE.13 and PE.14 )
 	
-	TIM1->CCR1 = 2; //determine the duty cycle, 10%
-	TIM1->CCR3 = 10; //determine the duty cycle, 50%
-	TIM1->CCR4 = 18; //determine the duty cycle, 90%
+	TIM1->CCR1 = 400; //determine the duty cycle, 10%
+	TIM1->CCR3 = 2000; //determine the duty cycle, 50%
+	TIM1->CCR4 = 3600; //determine the duty cycle, 90%
 	
 //Enable the Channel chosen to be output to the GPIO pin
 	TIM1->BDTR |= TIM_BDTR_MOE;// 0x00008000
