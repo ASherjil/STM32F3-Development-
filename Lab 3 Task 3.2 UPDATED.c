@@ -9,7 +9,7 @@ const int states[4] = {0,2,3,1}; // states of the encoder stored in an integer a
 static int state = 0; // state of the encoder
 void timer_init(void);// initialise timer based interrupt 
 void encoder_signal(void); // emulate the encoder signal 
-void encoder_pos(void); // CHA = PE.9 connected to PA.1, CHB= PE.8 connected to PA.0
+void encoder_pos(void); // CHA = PE.9 connected to PA.0, CHB= PE.8 connected to PA.1
 static int current_state[2] = {0,0}; // index 0 = CHA, index 1= CHB
 static int last_state[2] = {0,0};// index 1 = CHB, index 1 = CHB 
 //-------------------------------------------------------------------------
