@@ -16,7 +16,7 @@ const int states[4] = {0,2,3,1}; // states of the encoder stored in an integer a
 static int state = 0; // state of the encoder
 static int current_state[2]={0,0}; // for position measurement
 static int last_state[2]={0,0};// for position 
-static int encoderCount = 64; // counter for encoder pulses
+static int encoderCount = 113; // counter for encoder pulses
 static int encoder_dir_counter = 0; // counter for inverting encoder direction to match triangular wave
 //--------------------------------------------------------------------
 
@@ -80,8 +80,8 @@ void encoder_init(void) // initialise the interrupt for timer interrupt 2
 	GPIOB->OTYPER &= ~(0x3000); // push/pull "00" for pins(12,13)
 	GPIOB->PUPDR &= ~(0xF000000); // no pullup, pull-down for pins(12,13)
 	
-	TIM2->PSC = PRESCALER2;
-	TIM2->ARR =  ARR2;// set to 512Hz 
+	TIM2->PSC = 85;
+	TIM2->ARR =  409;// set to 512Hz 
 	TIM2->CR1 |= TIM_CR1_CEN;//  timer action is set in motion with the ‘enable’ command
 	TIM2->DIER |= TIM_DIER_UIE; // Set DIER register to watch out for an 'Update' Interrupt Enable (UIE) – or 0x00000001
 	NVIC_EnableIRQ(TIM2_IRQn); // Enable Timer 3 interrupt request in NVIC
@@ -162,7 +162,7 @@ void TIM2_IRQHandler()
 void encoder_signal() // emulates the encoder signal using state machine mechanism 
 {
 		
-	if (encoder_dir_counter > 256)// 257 means a total(CHA+CHB) encoder counts of 64 have occured
+	if (encoder_dir_counter > 228)// 257 means a total(CHA+CHB) encoder counts of 64 have occured
 	{
 		encoder_dir_counter =0 ;// reset
 		if (direction){direction=false;}// TOGGLE DIRECTION TO EMULATE A TRIANGLE WAVE
