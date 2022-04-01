@@ -6,6 +6,7 @@
 
 //-------------------------------------------------POTENTIOMETER INIT
 static unsigned long count = 0;
+int scaled;
 //-------------------------------------------------------------------
 
 
@@ -60,7 +61,8 @@ void TIM3_IRQHandler() // Timer interrupt 1
 
 void triangle_emulator(void)
 {
-	DAC1->DHR12R1 = abs((count++ % PERIOD1)-MAX_AMPLITUDE); // triangle wave writing 0-127,127-0 to the DAC
+	DAC1->DHR12R1 = abs((count % (2*MAX_AMPLITUDE))-MAX_AMPLITUDE); // triangle wave writing 3640-0-3640 to the DAC
+	count += 35 ;// increment in steps of 35
 	if (j>4){j=0;}// cycle through the storage array 
 	storage[j++]= (DAC1->DHR12R1);// store results in the array
 }
@@ -80,8 +82,8 @@ void encoder_init(void) // initialise the interrupt for timer interrupt 2
 	GPIOB->OTYPER &= ~(0x3000); // push/pull "00" for pins(12,13)
 	GPIOB->PUPDR &= ~(0xF000000); // no pullup, pull-down for pins(12,13)
 	
-	TIM2->PSC = 85;
-	TIM2->ARR =  409;// set to 512Hz 
+	TIM2->PSC = PRESCALER2;
+	TIM2->ARR =  ARR2;// set to 512Hz 
 	TIM2->CR1 |= TIM_CR1_CEN;//  timer action is set in motion with the ‘enable’ command
 	TIM2->DIER |= TIM_DIER_UIE; // Set DIER register to watch out for an 'Update' Interrupt Enable (UIE) – or 0x00000001
 	NVIC_EnableIRQ(TIM2_IRQn); // Enable Timer 3 interrupt request in NVIC
@@ -169,7 +171,7 @@ void encoder_signal() // emulates the encoder signal using state machine mechani
 		else if(!direction){direction=true;}
 	} 
 	
-	GPIOB -> BSRRH = 0x3000; // 0b11<<12, this turns OFF leds on PB12,13 to visualize the encoder signal 	
+	GPIOB -> BSRRH = 0x3000; // 0b11<<12, making both of the signals low to emalate a square wave signal  	
 	if (!direction)// anti-clockwise direction
 	{
 			switch(state)
@@ -260,7 +262,8 @@ void ADC_init()
 		
 	ADC1->CR &= ~(0xC);// set ADSTART and JADSTART to 0, "00 00"	
 	
-	ADC1->CFGR = (ADC1->CFGR & ~0x18)|(0x10);// 8 bit resolution 
+//	ADC1->CFGR = (ADC1->CFGR & ~0x18)|(0x10);// 8 bit resolution 
+	ADC1->CFGR &= ~(0x18); // 12 bit resolution 
 	ADC1->CFGR &= ~(0x20);// align right 
 	ADC1->CFGR &= ~(0x2000);// no continous 
 				
@@ -399,7 +402,8 @@ void writeLEDs()
 			
 				ADC1->CR |= 0x4; // enable ADC
 				while (!(ADC1->ISR & 0x4)) {}// wait for EOC flag to go high
-				GPIOE->BSRRL = ((ADC1->DR)/4) << 11; // turn ON Leds by shifting bits, the ADC is scaled to 5-bits 
+				scaled = (ADC1->DR)/117;
+				GPIOE->BSRRL = scaled << 11; // turn ON Leds by shifting bits, the ADC is scaled to 5-bits 
 			
 			break;
 			
