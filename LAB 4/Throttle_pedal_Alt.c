@@ -5,14 +5,14 @@
 #include "Throttle_pedal.h"
 
 //-------------------------------------------------POTENTIOMETER INIT
-static unsigned long count = 0;
-int scaled;
+static unsigned long count = 0; // counter variable
+int scaled; // scaled variable for scaling the ADC values 
 //-------------------------------------------------------------------
 
 
 
 //-------------------------------------------------ENCODER EMULATOR
-static volatile bool direction = false; // true = clockwise, false = anti-clockwise 
+static volatile bool direction = false; // true = clockwise, false = anti-clockwise
 const int states[4] = {0,2,3,1}; // states of the encoder stored in an integer array,{0b00,0b10,0b11,0b01} 
 static int state = 0; // state of the encoder
 static int current_state[2]={0,0}; // for position measurement
@@ -163,14 +163,14 @@ void TIM2_IRQHandler()
 
 void encoder_signal() // emulates the encoder signal using state machine mechanism 
 {
-		
-	if (encoder_dir_counter > 228)// 257 means a total(CHA+CHB) encoder counts of 64 have occured
+
+	if (encoder_dir_counter > 112)
 	{
 		encoder_dir_counter =0 ;// reset
-		if (direction){direction=false;}// TOGGLE DIRECTION TO EMULATE A TRIANGLE WAVE
-		else if(!direction){direction=true;}
-	} 
-	
+		direction = !direction; // toggle direction
+		state = 0; // reset state 			
+	} 	
+		
 	GPIOB -> BSRRH = 0x3000; // 0b11<<12, making both of the signals low to emalate a square wave signal  	
 	if (!direction)// anti-clockwise direction
 	{
@@ -223,7 +223,7 @@ void encoder_signal() // emulates the encoder signal using state machine mechani
 				break;	
 			}
 	}
-	++encoder_dir_counter;
+
 }
 //---------------------------------------------------------------------------------------------------------------
 
@@ -362,7 +362,8 @@ void encoder_pos()
 		}
 		last_state[1] = current_state[1]; // update CHB state 
 	}
-    
+	
+   	++encoder_dir_counter; // increment variable for changing direction 
 }
 
 
@@ -402,7 +403,7 @@ void writeLEDs()
 			
 				ADC1->CR |= 0x4; // enable ADC
 				while (!(ADC1->ISR & 0x4)) {}// wait for EOC flag to go high
-				scaled = (ADC1->DR)/117;
+				scaled = (ADC1->DR)/117; // variable to scale the traingle wave values  
 				GPIOE->BSRRL = scaled << 11; // turn ON Leds by shifting bits, the ADC is scaled to 5-bits 
 			
 			break;
@@ -434,7 +435,7 @@ void writeLEDs()
 				
 					for (size_t i=0;i<5;++i)
 					{
-						sum += storage[i]/4;// divide by 4 for scaling numbers  
+						sum += storage[i]/117;// scale the array values to fit 5-bit 
 					}					
 					__enable_irq(); // enable interrupts 
 					
