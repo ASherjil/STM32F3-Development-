@@ -1,6 +1,6 @@
 clear;clearvars;clc
 
-ARR = 7999
+ARR = 7999 % change ARR values 
 time = 1/100 ;% timer or freq required
 % percentage of duty cycles
 dutyCycles=[0 10 25 50 75 90 100];
