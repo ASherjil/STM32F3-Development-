@@ -51,7 +51,7 @@ void PWM_init(int dutyCycle)
 	GPIOE->MODER = (GPIOE->MODER & (~0x3C0C0000))|0x28080000; // PE.9,PE13,PE14 configured to alternate mode
 	
 	GPIOE->OTYPER &= ~(0x6200); // Push/pull for PE9,PE13,PE14
-	GPIOE->PUPDR &= 0x3C0C0000; // No pull-up,pull down for PE9,PE13,PE14 
+	GPIOE->PUPDR &= ~(0x3C0C0000); // No pull-up,pull down for PE9,PE13,PE14 
 	
 	GPIOE-> AFR[1] = (GPIOE->AFR[1] & ~(0xFF000F0))|0x2200020; // PE.9,PE.13 and PE.14 
 
