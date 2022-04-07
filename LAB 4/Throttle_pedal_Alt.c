@@ -5,8 +5,8 @@
 #include "Throttle_pedal.h"
 
 //-------------------------------------------------POTENTIOMETER INIT
-static unsigned long count = 0; // counter variable
-int scaled; // scaled variable for scaling the ADC values 
+static unsigned long count = 0; // counter variable for producing triangle wave 
+const float scaler1 = 117.419; // 3640/31 = scaling factor for DAC triangle wave
 //-------------------------------------------------------------------
 
 
@@ -19,18 +19,27 @@ static int current_state[2]={0,0}; // for position measurement
 static int last_state[2]={0,0};// for position 
 static int encoderCount = 113; // counter for encoder pulses
 static int encoder_dir_counter = 0; // counter for inverting encoder direction to match triangular wave
+const float scaler2 = 3.645; // encoderCounts converted to 5-bit, 113/31
 //--------------------------------------------------------------------
 
 
 //---------------------------------------------------------COMPUTING 5-POINT MOVING AVG
 static int j=0;// index for cycling through array
-double storage[5]={0};// store values from ADC
-double sum=0,avg=0; // variables to find avg 
+float storage[5]={0};// store values from ADC
+float sum=0,avg=0; // variables to find avg
 //-------------------------------------------------------------------------------------
 
 
+//----------------------------------------------------------------ALL LEDS init---------------------------------
+void CountLEDs_init() 
+{
+	RCC->AHBENR |=  RCC_AHBENR_GPIOEEN;// Enable clock on GPIO port C
+	GPIOE->MODER = (GPIOE->MODER & ~(0xFFFF0000))| 0x55550000;// output mode "01" for pins(8-15)
+	GPIOE->OTYPER &= ~(0xFF00); // push/pull "00" for pins(8-15)
+	GPIOE->PUPDR &= ~(0xFFFF0000); // no pullup, pull-down for pins(8-15)
+}
 
-//-----------------------------------------------------------------POTENTIOMETER INIT--------------------------
+//---------------------------------------------------------------POTENTIOMETER INIT--------------------------
 void DAC_init(void)
 {
 	
@@ -62,9 +71,10 @@ void TIM3_IRQHandler() // Timer interrupt 1
 void triangle_emulator(void)
 {
 	DAC1->DHR12R1 = abs((count % (2*MAX_AMPLITUDE))-MAX_AMPLITUDE); // triangle wave writing 3640-0-3640 to the DAC
-	count += 35 ;// increment in steps of 35
-	if (j>4){j=0;}// cycle through the storage array 
-	storage[j++]= (DAC1->DHR12R1);// store results in the array
+	count += 20 ;// increment in steps of 35
+//	if (j>4){j=0;}// cycle through the storage array 
+//	storage[j++]= (DAC1->DHR12R1);// store results in the array
+	store_ADC();
 }
 //-------------------------------------------------------------------------------------------------------
 
@@ -83,7 +93,7 @@ void encoder_init(void) // initialise the interrupt for timer interrupt 2
 	GPIOB->PUPDR &= ~(0xF000000); // no pullup, pull-down for pins(12,13)
 	
 	TIM2->PSC = PRESCALER2;
-	TIM2->ARR =  ARR2;// set to 512Hz 
+	TIM2->ARR =  ARR2;
 	TIM2->CR1 |= TIM_CR1_CEN;//  timer action is set in motion with the ‘enable’ command
 	TIM2->DIER |= TIM_DIER_UIE; // Set DIER register to watch out for an 'Update' Interrupt Enable (UIE) – or 0x00000001
 	NVIC_EnableIRQ(TIM2_IRQn); // Enable Timer 3 interrupt request in NVIC
@@ -107,7 +117,7 @@ void ext_interrupt1_init(void) // initialise interrupt on PA.1
 	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI1_PA;// PA.1
 	
 	NVIC_EnableIRQ(EXTI1_IRQn); // set the nvic
-	NVIC_SetPriority(EXTI1_IRQn,1);// set priority to 1, second highest priority 
+	NVIC_SetPriority(EXTI1_IRQn,0);// set priority to 1, second highest priority 
 }	
 
 void EXTI1_IRQHandler() // ext interrupt on PA.1
@@ -139,7 +149,7 @@ void ext_interrupt2_init(void)// initialise interrupt on PC.3
 	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI3_PC;
 	
 	NVIC_EnableIRQ(EXTI3_IRQn); // set the nvic
-	NVIC_SetPriority(EXTI3_IRQn,2);// set priority to 2, third highest priority 
+	NVIC_SetPriority(EXTI3_IRQn,0);// set priority to 2, third highest priority 
 }
 
 void EXTI3_IRQHandler() // ext interrupt on PC.3
@@ -164,7 +174,7 @@ void TIM2_IRQHandler()
 void encoder_signal() // emulates the encoder signal using state machine mechanism 
 {
 
-	if (encoder_dir_counter > 112)
+	if (encoder_dir_counter > 112) // reset when 113 encoder counts have occurred 
 	{
 		encoder_dir_counter =0 ;// reset
 		direction = !direction; // toggle direction
@@ -225,9 +235,44 @@ void encoder_signal() // emulates the encoder signal using state machine mechani
 	}
 
 }
+void encoder_pos() // function to determine direction of encoder from external interrupts 
+{
+	   
+    current_state[0] = (GPIOA -> IDR & 0x2)>>1; //Store Current State of CHA
+    current_state[1] = (GPIOC -> IDR & 0x8)>>3; //Store Current State of CHB
+	
+	
+	if (current_state[0]!= last_state[0]) // CHA triggered the interrupt 
+	{
+		if (current_state[0] ^ last_state[1]) // CHA_new XOR CHB_old
+		{
+			++encoderCount;
+		}
+		else 
+		{
+			--encoderCount;
+		}
+		
+		last_state[0] = current_state[0]; // update CHA state 
+	}
+	else if (current_state[1] != last_state[1])// CHB triggered the interrupt 
+	{
+		if (last_state[0] ^ current_state[1]) // CHA_old XOR CHB_new
+		{
+			--encoderCount;
+		}
+		else
+		{
+			++encoderCount;
+		}
+		last_state[1] = current_state[1]; // update CHB state 
+	}
+	
+   	++encoder_dir_counter; // increment variable for changing direction 
+}
 //---------------------------------------------------------------------------------------------------------------
 
-//---------------------------------------------------------------------------------------ADC and OP-Amp INIT-----
+//---------------------------------------------------------------------------------------ADC INIT-----
 void wait(int c)
 {
 	int ticks=0;
@@ -275,22 +320,23 @@ void ADC_init()
 	
 	while (!(ADC1->ISR & 0x01)) {}// wait for ARDY flag to go high 
 }
-void OpAmp_init()
-{
-//The OpAmp is connected to the system clock via the APB2 peripheral clock bus
-	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
-	
-	GPIOA->MODER |= 0xC00;// input PA.5 set to analogue mode
-	GPIOA->MODER |= 0x30; //output PA.2 set to analogue mode "11"
 
-// Enable the OpAmp by setting the OPAMP1EN bit high in the CSR register	
-	OPAMP1->CSR |= 0x00000001;
-//Define the inputs to be used by specifying the correct VM_SEL and VP_SEL bits in the CSR register
-	OPAMP1->CSR |= 0x00000004; // PA.5 as non-inv. Input
-	OPAMP1->CSR |= 0x00000040;// Set VM_SEL to 0b10 to enable PGA mode
-	
-	OPAMP1->CSR = (OPAMP1->CSR & ~0x3C000)|0xC000;// gain set to 16 
+int ADC_read() // a function to continously read from the ADC, return the integer value of the ADC
+{
+	ADC1->CR |= 0x4; // enable ADC
+	while (!(ADC1->ISR & 0x4)) {}// wait for EOC flag to go high
+//	float returner = round((ADC1->DR)/scaler1); // variable to scale the traingle wave values
+			
+	return (ADC1->DR);
 }
+
+void store_ADC() // store triangle wave inside an array for 5-point moving average
+{
+	if (j>4){j=0;}// cycle through the storage array 
+	storage[j++]= ADC_read();// store results in the array
+}
+
+
 //-------------------------------------------------------------------------------------------------------------------------------
 
 //------------------------------------------------BUTTON INTERRUPT INIT----------------------------------------------------------
@@ -322,55 +368,10 @@ void EXTI0_IRQHandler() // button interrupt on PA.0
 	}
 };
 
-void CountLEDs_init()
-{
-	RCC->AHBENR |=  RCC_AHBENR_GPIOEEN;// Enable clock on GPIO port C
-	GPIOE->MODER = (GPIOE->MODER & ~(0xFFFF0000))| 0x55550000;// output mode "01" for pins(8-15)
-	GPIOE->OTYPER &= ~(0xFF00); // push/pull "00" for pins(8-15)
-	GPIOE->PUPDR &= ~(0xFFFF0000); // no pullup, pull-down for pins(8-15)
-}
-
-void encoder_pos()
-{
-	   
-    current_state[0] = (GPIOA -> IDR & 0x2)>>1; //Store Current State of CHA
-    current_state[1] = (GPIOC -> IDR & 0x8)>>3; //Store Current State of CHB
-	
-	
-	if (current_state[0]!= last_state[0]) // CHA triggered the interrupt 
-	{
-		if (current_state[0] ^ last_state[1]) // CHA_new XOR CHB_old
-		{
-			++encoderCount;
-		}
-		else 
-		{
-			--encoderCount;
-		}
-		
-		last_state[0] = current_state[0]; // update CHA state 
-	}
-	else if (current_state[1] != last_state[1])// CHB triggered the interrupt 
-	{
-		if (last_state[0] ^ current_state[1]) // CHA_old XOR CHB_new
-		{
-			--encoderCount;
-		}
-		else
-		{
-			++encoderCount;
-		}
-		last_state[1] = current_state[1]; // update CHB state 
-	}
-	
-   	++encoder_dir_counter; // increment variable for changing direction 
-}
-
-
 
 enum tests testing = POTENTIOMETER;
 
-void test_options()
+void test_options() // state machine mechanism to respond to blue push button 
 {	
 		switch (testing)
 		{
@@ -387,7 +388,7 @@ void test_options()
 			break; 
 		}		
 }
-
+//--------------------------------------------------MAIN FUNCTION TO RUN INSIDE int main()-----
 void writeLEDs()
 {
 	switch (testing)
@@ -400,11 +401,8 @@ void writeLEDs()
 				{
 					GPIOE->BSRRL = 0x100; 
 				}
-			
-				ADC1->CR |= 0x4; // enable ADC
-				while (!(ADC1->ISR & 0x4)) {}// wait for EOC flag to go high
-				scaled = (ADC1->DR)/117; // variable to scale the traingle wave values  
-				GPIOE->BSRRL = scaled << 11; // turn ON Leds by shifting bits, the ADC is scaled to 5-bits 
+				// the following scales the ADC value to 5-bit then converts that float into integer 
+				GPIOE->BSRRL = ((int)round((ADC_read()/scaler1))) << 11; // turn ON Leds by shifting bits, the ADC is scaled to 5-bits 
 			
 			break;
 			
@@ -412,13 +410,13 @@ void writeLEDs()
 				
 				GPIOE->BSRRH = (0xFD00); // turn OFF Leds PE.8, PE.10-15
 				
-				if(!(GPIOE->IDR & 0x200)) // turn ON Led PE.8 if OFF
+				if(!(GPIOE->IDR & 0x200)) // turn ON Led PE.9 if OFF
 				{
 					GPIOE->BSRRL = 0x200; 
 				}
 				
-				
-				GPIOE->BSRRL = abs(encoderCount/2) << 11; // turn on LEDs by shifting bit to match PE11-15	
+				// scale the encoder count to 5-bit then cast to integer 
+				GPIOE->BSRRL = (int)(round(abs(encoderCount)/scaler2)) << 11; // turn on LEDs by shifting bit to match PE11-15	
 			
 			break;
 			
@@ -435,14 +433,15 @@ void writeLEDs()
 				
 					for (size_t i=0;i<5;++i)
 					{
-						sum += storage[i]/117;// scale the array values to fit 5-bit 
-					}					
+						sum += storage[i]/scaler1;// scale the array values to fit 5-bit 
+					}
+
+					avg = ((sum/5)+(abs(encoderCount)/scaler2))/2; // sum/5 = avg of POT , (avg of POT + encoder)/2
+					
 					__enable_irq(); // enable interrupts 
 					
-					avg = ((sum/5)+abs(encoderCount/2))/2; // sum/5 = avg of POT , (avg of POT + encoder)/2
-					
-					GPIOE->BSRRL = ((int)round(avg)) << 11; // cast the decimal value to int 
-					sum = 0;
+					GPIOE->BSRRL = ((int)round(avg)) << 11; // cast the decimal value to int after rounding 
+					sum = 0;// reset sum to zero for next iteration 
 			break; 
 		}	
 }
