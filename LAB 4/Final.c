@@ -1,8 +1,19 @@
+/*
+PIN CONNECTIONS 
+
+ENCODER CONNECTIONS:
+1- PB13 -> PA1
+2- PB12 -> PC3
+
+DAC Trianagle WAVE Connections:
+PA4 -> PF2 
+
+*/
 #include <stdbool.h>
 #include <stdlib.h>
 #include <math.h>
-#include "stm32f3xx.h"                  // Device header
-//#include "Throttle_pedal.h"
+#include "stm32f3xx.h"               
+
 
 #define PRESCALER1 35 //  DAC/triangle wave incrementing in steps of 10, ISR frequency of 730 Hz 
 #define ARR1 303
@@ -20,7 +31,7 @@ void triangle_emulator(void); // write DAC values which output an analogue trian
 //-------------------------------------------------ENCODER EMULATOR
 void encoder_signal(void); // emulate the encoder signal on PB.12 and PB.13 
 void encoder_init(void); // initialise the interrupt required to generate the encoder signal
-void ext_interrupt1_init(void); // initialise interrupt pins, PA.1(HIGHER priority)
+void ext_interrupt1_init(void); // initialise interrupt pins, PA.1
 void ext_interrupt2_init(void);// initialise interrupt pins , PC.3
 void encoder_pos(void); // increment CW, decrement CCW
 //--------------------------------------------------------------------
@@ -135,9 +146,13 @@ void TIM3_IRQHandler() // Timer interrupt 1
 void triangle_emulator(void)
 {
 	DAC1->DHR12R1 = abs((count % (2*MAX_AMPLITUDE))-MAX_AMPLITUDE); // triangle wave writing 3640-0-3640 to the DAC
+	
+	if (count >= 4294967295) // reset count when the maximum value of unsigned long is reached 
+	{
+		count = 0;
+	}
 	count += 10;
-//	if (j>4){j=0;}// cycle through the storage array 
-//	storage[j++]= (DAC1->DHR12R1);// store results in the array
+	
 	store_ADC();
 }
 //-------------------------------------------------------------------------------------------------------
@@ -465,8 +480,10 @@ void writeLEDs()
 				{
 					GPIOE->BSRRL = 0x100; 
 				}
+				__disable_irq(); // disable interrupts
 				// the following scales the ADC value to 5-bit then converts that float into integer 
-				GPIOE->BSRRL = ((int)round((ADC_read()/scaler1))) << 11; // turn ON Leds by shifting bits, the ADC is scaled to 5-bits 
+				GPIOE->BSRRL = ((int)((ADC_read()/scaler1))) << 11; // turn ON Leds by shifting bits, the ADC is scaled to 5-bits 
+				__enable_irq(); // enable interrupts
 			
 			break;
 			
@@ -479,9 +496,11 @@ void writeLEDs()
 					GPIOE->BSRRL = 0x200; 
 				}
 				
+				__disable_irq();// disable interrupts
 				// scale the encoder count to 5-bit then cast to integer 
-				GPIOE->BSRRL = (int)(round(abs(encoderCount)/scaler2)) << 11; // turn on LEDs by shifting bit to match PE11-15	
-			
+				GPIOE->BSRRL = (int)((abs(encoderCount)/scaler2)) << 11; // turn on LEDs by shifting bit to match PE11-15	
+				__enable_irq();// enable interrupts
+				
 			break;
 			
 			case COMBINED_TEST:
@@ -504,7 +523,7 @@ void writeLEDs()
 					
 					__enable_irq(); // enable interrupts 
 					
-					GPIOE->BSRRL = ((int)round(avg)) << 11; // cast the decimal value to int after rounding 
+					GPIOE->BSRRL = ((int)(avg)) << 11; // cast the decimal value to int after rounding 
 					sum = 0;// reset sum to zero for next iteration 
 			break; 
 		}	
