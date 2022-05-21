@@ -1,4 +1,5 @@
 /*
+Student: B820928
 PIN CONNECTIONS 
 
 ENCODER CONNECTIONS:
@@ -8,24 +9,21 @@ ENCODER CONNECTIONS:
 DAC Trianagle WAVE Connections:
 DAC (PA.4) -> ADC(PF.2) 
 */
-#include <stdbool.h>
-#include <stdlib.h>
-#include <math.h>
+#include <stdbool.h>// for boolean values 
+#include <stdlib.h> // for abs() function
 #include "stm32f3xx.h"               
 
 #define PRESCALER1 85 // Triangle wave simuation occurs at 226 Hz
 #define ARR1 407
 
 /* The counter increments by 32 each time, making the triangle wave go from
-	3616 then back down to 0. The DAC value is then scaled to 5-bits.
+	32*113 = 3616 then back down to 0. The DAC value is then scaled to 5-bits.
 	
 */
 //---------------------------------------FUNCTION PROTOTYYPES---------------------------------
 void CountLEDs_init(void); // Initialise ALL LEDs
 //-------------------------------------------------POTENTIOMETER INIT
 void DAC_init(void); // initialise the DAC with a timer-based interrupt, PA.4
-void triangle_emulator(void); // write DAC values which output an analogue triangular signal 
-//-------------------------------------------------------------------
 //-------------------------------------------------ENCODER EMULATOR
 void triangle_generator(void); // emulate the encoder signal on PB.12 and PB.13 
 void encoder_init(void); // initialise the interrupt required to generate the encoder signal
@@ -63,7 +61,7 @@ const int states[4] = {0,2,3,1}; // states of the encoder stored in an integer a
 static int state = 0; // state of the encoder
 static int current_state[2]={0,0}; // for position measurement
 static int last_state[2]={0,0};// for position 
-static volatile int encoderCount = 0; // counter for encoder pulses
+static volatile int encoderCount = 0; // counter for keeping track of direction
 static volatile int encoder_dir_counter = 0; // counter for inverting encoder direction to match triangular wave
 const float scaler2 = (113/31.0); // encoderCounts converted to 5-bit, 113/31
 //--------------------------------------------------------------------
@@ -157,12 +155,12 @@ void ext_interrupt1_init(void) // initialise interrupt on PA.1
 	
 
 	EXTI->RTSR |= EXTI_RTSR_TR1;//Set interrupt trigger to be rising edge
-	EXTI->FTSR |= EXTI_RTSR_TR1;//Set interrupt trigger to be rising edge
+	EXTI->FTSR |= EXTI_RTSR_TR1;//Set interrupt trigger to be falling edge
 	
 	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI1_PA;// PA.1
 	
 	NVIC_EnableIRQ(EXTI1_IRQn); // set the nvic
-	NVIC_SetPriority(EXTI1_IRQn,0);// set priority to 1, second highest priority 
+	NVIC_SetPriority(EXTI1_IRQn,0);// set priority to 0
 }	
 
 void EXTI1_IRQHandler() // ext interrupt on PA.1
@@ -189,12 +187,12 @@ void ext_interrupt2_init(void)// initialise interrupt on PC.3
 	EXTI->IMR |= EXTI_IMR_MR3;//Remove the mask to enable an interrupt to be generated using the EXTI_IMR register
 	
 	EXTI->RTSR |= EXTI_RTSR_TR3;//Set interrupt trigger to be rising edge
-	EXTI->FTSR |= EXTI_RTSR_TR3;//Set interrupt trigger to be rising edge
+	EXTI->FTSR |= EXTI_RTSR_TR3;//Set interrupt trigger to be falling edge
 	
 	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI3_PC;
 	
 	NVIC_EnableIRQ(EXTI3_IRQn); // set the nvic
-	NVIC_SetPriority(EXTI3_IRQn,0);// set priority to 2, third highest priority 
+	NVIC_SetPriority(EXTI3_IRQn,0);// set priority to 0
 }
 
 void EXTI3_IRQHandler() // ext interrupt on PC.3
@@ -304,11 +302,11 @@ void encoder_pos() // function to determine direction of encoder from external i
 	{
 		if (current_state[0] ^ last_state[1]) // CHA_new XOR CHB_old
 		{
-			++encoderCount;
+			++encoderCount; // increment due to CW
 		}
 		else 
 		{
-			--encoderCount;
+			--encoderCount; // decrement due to CCW
 		}
 		
 		last_state[0] = current_state[0]; // update CHA state 
@@ -317,11 +315,11 @@ void encoder_pos() // function to determine direction of encoder from external i
 	{
 		if (last_state[0] ^ current_state[1]) // CHA_old XOR CHB_new
 		{
-			--encoderCount;
+			--encoderCount;// decrement due to CCW
 		}
 		else
 		{
-			++encoderCount;
+			++encoderCount;// decrement due to CW
 		}
 		last_state[1] = current_state[1]; // update CHB state 
 	}
@@ -438,7 +436,7 @@ void test_options() // state machine mechanism to respond to blue push button
 			break;
 			
 			case COMBINED_TEST:
-			testing = POTENTIOMETER;// move on to the next state 	
+			testing = POTENTIOMETER;// move back to the first state 	
 			break; 
 		}		
 }
@@ -457,7 +455,8 @@ void writeLEDs()
 				}
 
 				// the following scales the ADC value to 5-bit then converts that float into integer 
-				GPIOE->BSRRL = ((int)((ADC_read()/scaler1))) << 11; // turn ON Leds by shifting bits, the ADC is scaled to 5-bits 
+				// the value from the storage array that contains ADC values is written to the LEDs
+				GPIOE->BSRRL = ((int) (storage[j]/scaler1) )<<11;// turn ON Leds by shifting bits, the ADC is scaled to 5-bits 
 				
 			break;
 			
