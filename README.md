@@ -31,6 +31,7 @@ The diagram below shows how they are the position is displayed on the onboard LE
 
 <img width="600" alt="image" src="https://user-images.githubusercontent.com/92602684/177422101-4f8dfbe3-ad6f-4b4a-9bfc-756f02d8011c.png">
 
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/areebTP/STM32F3-Development-)
 
 The binary converter can be found here : https://github.com/areebTP/Binary-Converter
 
