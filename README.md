@@ -29,7 +29,7 @@ The STM32F3 board produced 3 types of output:
 
 The diagram below shows how they are the position is displayed on the onboard LEDs. 
 
-<img width="800" alt="image" src="https://user-images.githubusercontent.com/92602684/177422101-4f8dfbe3-ad6f-4b4a-9bfc-756f02d8011c.png">
+<img width="600" alt="image" src="https://user-images.githubusercontent.com/92602684/177422101-4f8dfbe3-ad6f-4b4a-9bfc-756f02d8011c.png">
 
 
 The binary converter can be found here : https://github.com/areebTP/Binary-Converter
