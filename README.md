@@ -33,6 +33,17 @@ The diagram below shows how they are the position is displayed on the onboard LE
 
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/areebTP/STM32F3-Development-)
 
+#Installation and Usage
+
+1- Find files "WSC355 Keil Download and Setup.pdf" and follow the steps until "Testing the IDE" section.
+
+2- Create a new project and add files found in folder "Potentiometer and Encoder" :
+ 
+ "Throttle_Pedal.h" + "Throttle_Pedal.c" + "mainFile.c"
+ 
+ 3- Wire up the STM32 board as pointed out in the header file("Throttle_Pedal.h"). Pressing the blue push button will switch between the different testing modes. 
+ 
+
 The binary converter can be found here : https://github.com/areebTP/Binary-Converter
 
 A working copy on onlineGDB: https://www.onlinegdb.com/rZVFil0HYj
