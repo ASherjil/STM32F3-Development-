@@ -33,7 +33,7 @@ The diagram below shows how they are the position is displayed on the onboard LE
 
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/areebTP/STM32F3-Development-)
 
-#Installation and Usage
+# Installation and Usage
 
 1- Find files "WSC355 Keil Download and Setup.pdf" and follow the steps until "Testing the IDE" section.
 
@@ -41,8 +41,11 @@ The diagram below shows how they are the position is displayed on the onboard LE
  
  "Throttle_Pedal.h" + "Throttle_Pedal.c" + "mainFile.c"
  
- 3- Wire up the STM32 board as pointed out in the header file("Throttle_Pedal.h"). Pressing the blue push button will switch between the different testing modes. 
+3- Wire up the STM32 board as pointed out in the header file("Throttle_Pedal.h"). Pressing the blue push button will switch between the different testing modes. 
  
+# Other Related Projects
+
+A binary converter project was made to quickly add 0s to binary numbers(16 and 32-bit), converting numbers between hexadecimal and decimal. This made changing registors quite easy especially since other online binary converters do not take whitespace into account.
 
 The binary converter can be found here : https://github.com/areebTP/Binary-Converter
 
