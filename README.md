@@ -50,3 +50,7 @@ A binary converter project was made to quickly add 0s to binary numbers(16 and 3
 The binary converter can be found here : https://github.com/areebTP/Binary-Converter
 
 A working copy on onlineGDB: https://www.onlinegdb.com/rZVFil0HYj
+
+Another major embedded project I worked on can be found in the link below. In this case, I developed digital PID controllers using the Arduino Mega. The software was designed in an object-oriented manner in C++:
+
+https://github.com/lboroWMEME-TeamProject/Motor-controller-development
