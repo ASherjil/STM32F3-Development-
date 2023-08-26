@@ -47,4 +47,4 @@ The diagram below shows how they are the position is displayed on the onboard LE
 
 Another interesting project I worked on was creating a GUI polynomial long division calculator using C++17 with the Qt framework. Check it out:
 
-https://github.com/areebTP/Polynomial_Long_Division_GUI
+https://github.com/ASherjil/Polynomial_Long_Division_GUI
